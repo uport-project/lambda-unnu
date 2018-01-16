@@ -73,6 +73,11 @@ class CreateIdentityHandler {
 
         //TODO: Wait for tx to be mined. Read log and store the triplet: deviceKey, proxyAddres, network/blockchain on the database (and also the txHash)
 
+        let ret={
+            managerType: body.managerType,
+            managerAddress: '0x',
+            txHash: txHash
+        }
         cb(null, txHash)
       } catch(err) {
         console.log("Error on this.identityManagerMgr.createIdentity")
