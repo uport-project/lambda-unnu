@@ -38,10 +38,19 @@ class IdentityManagerMgr {
     }
   }
 
-  async createIdentity({deviceKey, recoveryKey, blockchain, managerType}) {
+  async createIdentity({deviceKey, recoveryKey, blockchain, managerType, payload}) {
     if(!deviceKey) throw('no deviceKey')    
-    if(!recoveryKey) throw('no recoveryKey')    
     if(!managerType) throw('no managerType')
+    if (payload && !payload.destination) throw('payload but no payload.destination') 
+    if (payload && !payload.data) throw('payload but no payload.data') 
+    let recoveryKeyFix
+
+    let zeroHexString = /^0x[^1-9]+$/
+    if (recoveryKey && !recoveryKey.match(zeroHexString)) {
+        recoveryKeyFix = recoveryKey
+      } else {
+        recoveryKeyFix = deviceKey
+      }
 
     let idMgrs;
     switch(managerType){
@@ -65,8 +74,11 @@ class IdentityManagerMgr {
       nonce: this.ethereumMgr.getNonce(from,blockchain)
     }
     
-    
-    return await idMgrs[blockchain].createIdentity(deviceKey, recoveryKey, txOptions)
+    if (payload) {
+      return await idMgrs[blockchain].createIdentityWithCall(deviceKey, recoveryKey, payload.destination, payload.data, txOptions)
+    } else {
+      return await idMgrs[blockchain].createIdentity(deviceKey, recoveryKey, txOptions)
+    }
   }
 
 

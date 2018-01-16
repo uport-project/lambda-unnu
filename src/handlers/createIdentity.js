@@ -54,6 +54,11 @@ class CreateIdentityHandler {
         cb ({code: 400, message: 'managerType parameter invalid'})
         return;
       }
+      
+      if (body.payload && !(body.payload.destination && body.payload.data)) {
+        cb({code: 400, message: 'payload given but missing destination or data'})
+        return;
+      }      
 
       //Verify auth and body.deviceKey
       if(authToken.sub !== body.deviceKey){
@@ -64,7 +69,10 @@ class CreateIdentityHandler {
   
   
       try{
-        const txHash = await this.identityManagerMgr.createIdentity(body)
+        const txHash = await this.identityManagerMgr.createIdentity(body) 
+
+        //TODO: Wait for tx to be mined. Read log and store the triplet: deviceKey, proxyAddres, network/blockchain on the database (and also the txHash)
+
         cb(null, txHash)
       } catch(err) {
         console.log("Error on this.identityManagerMgr.createIdentity")
