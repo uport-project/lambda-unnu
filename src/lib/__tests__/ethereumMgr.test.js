@@ -23,8 +23,8 @@ describe('EthereumMgr', () => {
         expect(sut).not.toBeUndefined();
         expect(sut.pgUrl).toBeNull();
         expect(sut.seed).toBeNull();
-        expect(sut.web3s).not.toEqual({});
-        expect(sut.gasPrices).not.toEqual({});
+        expect(sut.web3s).toEqual({});
+        expect(sut.gasPrices).toEqual({});
         
     });
 
@@ -62,7 +62,7 @@ describe('EthereumMgr', () => {
     test('getProvider() rinkeby', (done) =>{
         let p=sut.getProvider('rinkeby')
         expect(p).not.toBeNull();
-        expect(p.host).toEqual("https://rinkeby.infura.io/")
+        expect(p.provider.host).toEqual("https://rinkeby.infura.io/uport-lambda-unnu")
         done();
     })
 
@@ -220,159 +220,5 @@ describe('EthereumMgr', () => {
         });
     })
 
-    describe('signTx()', ()=> {
-        test('no txHex', (done) =>{
-            sut.signTx({blockchain:'network'})
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no txHex')
-                done()
-            })
-        });
-
-        test('no blockchain', (done) =>{
-            sut.signTx({txHex:'fae'})
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no blockchain')
-                done()
-            })
-        });
-
-        test('happy path', (done)=>{
-            let i={
-                txHex: validMetaSignedTx,
-                blockchain: 'network'
-            }
-            sut.signTx(i)
-            .then((resp)=> {
-                expect(resp).toEqual(validSignedTx)
-                done()
-            })
-        })
-
-        test('signRawTx fail', (done)=>{
-            let i={
-                txHex: validMetaSignedTx,
-                blockchain: 'network'
-            }
-            sut.signer.signRawTx=jest.fn()
-            sut.signer.signRawTx.mockImplementation((rawTx,cb)=>{
-                cb('failed');
-            })
-            sut.signTx(i)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('failed')
-                done()
-            })
-        })
-    })
-
-    describe('sendRawTransaction()', ()=> {
-        test('no signedRawTx', (done) =>{
-            sut.sendRawTransaction(null,'network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no signedRawTx')
-                done()
-            })
-        });
-
-        test('no networkName', (done) =>{
-            sut.sendRawTransaction(validSignedTx ,null)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no networkName')
-                done()
-            })
-        });
-
-        test('happy path (no 0x)', (done) =>{
-            sut.web3s['network']={
-                eth:{
-                    sendRawTransactionAsync: jest.fn()
-                }
-            }
-            sut.sendRawTransaction(validSignedTx ,'network')
-            .then((resp)=> {
-                expect(sut.web3s['network'].eth.sendRawTransactionAsync)
-                        .toBeCalledWith('0x'+validSignedTx)
-                done()
-            })
-        });
-
-        test('happy path (with 0x)', (done) =>{
-            sut.web3s['network']={
-                eth:{
-                    sendRawTransactionAsync: jest.fn()
-                }
-            }
-            sut.sendRawTransaction('0x'+validSignedTx ,'network')
-            .then((resp)=> {
-                expect(sut.web3s['network'].eth.sendRawTransactionAsync)
-                        .toBeCalledWith('0x'+validSignedTx)
-                done()
-            })
-        });
-    })
-
-    describe('sendTransaction()', ()=> {
-        test('no txObj', (done) =>{
-            sut.sendTransaction(null,'network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no txObj')
-                done()
-            })
-        });
-
-        test('no networkName', (done) =>{
-            sut.sendTransaction({} ,null)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no networkName')
-                done()
-            })
-        });
-
-        test.skip('happy path', (done) =>{
-            sut.signer.signRawTx=jest.fn()
-            sut.signer.signRawTx.mockImplementation((rawTx,cb)=>{
-                cb(null,'0xabcdef');
-            })
-            sut.web3s['network']={
-                eth:{
-                    sendRawTransactionAsync: jest.fn()
-                }
-            }
-            let txObj={
-                to:'0x1',
-                value:10
-            }
-            sut.sendRawTransaction(txObj ,'network')
-            .then((resp)=> {
-                expect(sut.web3s['network'].eth.sendRawTransactionAsync)
-                        .toBeCalledWith('0x')
-                done()
-            })
-        });
-
-    })
-
-
+    
 })
