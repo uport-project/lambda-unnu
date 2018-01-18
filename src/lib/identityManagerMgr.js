@@ -1,6 +1,7 @@
 import { IdentityManager, MetaIdentityManager} from 'uport-identity'
 import Promise from 'bluebird'
 import { Client } from 'pg'
+import abi from 'ethjs-abi'
 
 class IdentityManagerMgr {
 
@@ -122,12 +123,73 @@ class IdentityManagerMgr {
     }
   }
  
+  async getIdentityCreation(deviceKey,networkName){
+    if(!deviceKey) throw('no deviceKey')    
+    if(!networkName) throw('no networkName')    
+    if(!this.pgUrl) throw('no pgUrl set')
 
-  async getTxData(txHash,blockchain){
-    await this.ethereumMgr.getTransaction(txHash,blockchain);
+    const client = new Client({
+        connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "SELECT tx_hash, tx_receipt, identity \
+               FROM identities \
+              WHERE device_key = $1 \
+                AND network = $2 \
+           ORDER BY created \
+              LIMIT 1"
+            , [deviceKey, networkName]);
+        return res.rows[0];
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
   }
 
+  async getTransactionReceipt(txHash,blockchain){
+    if(!txHash) throw('no txHash')    
+    if(!blockchain) throw('no blockchain')    
+    if(!this.pgUrl) throw('no pgUrl set')
 
+    const txReceipt=await this.ethereumMgr.getTransactionReceipt(txHash,blockchain);
+
+    const decodedLogs = await this.decodeLogs(txReceipt)
+    const identity = decodedLogs.identity
+    
+    const client = new Client({
+      connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "UPDATE identities \
+                SET tx_receipt = $2, \
+                    identity = $3 \
+              WHERE tx_hash = $1"
+            , [txHash, txReceipt, identity]);
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
+
+    return {txReceipt: txReceipt, identity: identity};
+  }
+
+  async decodeLogs(txReceipt){
+    if(!txReceipt) throw('no txReceipt') 
+    const idMgrArtifact =  MetaIdentityManager.v2 //TODO: need to fix this   
+    
+    let eventAbi = idMgrArtifact.abi.filter((o) => { return o.name === 'LogIdentityCreated' })[0]
+    let log = txReceipt.logs[0] //I hope is always the first one
+    return abi.decodeEvent(eventAbi, log.data, log.topics)
+
+  }
 
 
 }

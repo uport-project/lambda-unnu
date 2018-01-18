@@ -74,11 +74,11 @@ class EthereumMgr {
     return this.web3s[networkName].eth.contract(abi)
   }
 
-  async getTransaction(txHash,networkName){
+  async getTransactionReceipt(txHash,networkName){
     if(!txHash) throw('no txHash')
     if(!networkName) throw('no networkName')
     if(!this.web3s[networkName]) throw('no web3 for networkName')
-    return await this.web3s[networkName].eth.getTransactionAsync(txHash)
+    return await this.web3s[networkName].eth.getTransactionReceiptAsync(txHash)
   }
 
 
