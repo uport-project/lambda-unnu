@@ -16,7 +16,8 @@ module.exports.createIdentity = (event, context, callback) => { preHandler(creat
 const preHandler = (handler,event,context,callback) =>{
   console.log(event)
   if(!ethereumMgr.isSecretsSet() ||
-     !authMgr.isSecretsSet() ){
+     !authMgr.isSecretsSet() || 
+     !identityManagerMgr.isSecretsSet()){
     const kms = new AWS.KMS();
     kms.decrypt({
       CiphertextBlob: Buffer(process.env.SECRETS, 'base64')
@@ -24,6 +25,7 @@ const preHandler = (handler,event,context,callback) =>{
       const decrypted = String(data.Plaintext)
       authMgr.setSecrets(JSON.parse(decrypted))
       ethereumMgr.setSecrets(JSON.parse(decrypted))
+      identityManagerMgr.setSecrets(JSON.parse(decrypted))
       doHandler(handler,event,context,callback)
     })
   }else{

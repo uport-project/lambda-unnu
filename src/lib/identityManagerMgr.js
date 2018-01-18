@@ -1,6 +1,6 @@
 import { IdentityManager, MetaIdentityManager} from 'uport-identity'
 import Promise from 'bluebird'
-
+import { Client } from 'pg'
 
 class IdentityManagerMgr {
 
@@ -8,6 +8,17 @@ class IdentityManagerMgr {
     this.identityManagers = {}
     this.metaIdentityManagers = {}
     this.ethereumMgr=ethereumMgr;
+    
+    this.pgUrl=null
+    
+  }
+
+  isSecretsSet(){
+    return (this.pgUrl !== null);
+  }
+
+  setSecrets(secrets){
+    this.pgUrl=secrets.PG_URL;
   }
 
   async initIdentityManager(managerType,networkName) {
@@ -83,12 +94,41 @@ class IdentityManagerMgr {
     } else {
       ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKey, txOptions)
     }
+
+    await this.storeIdentityCreation(deviceKey,ret.txHash,blockchain)
     return ret;
   }
+
+  async storeIdentityCreation(deviceKey, txHash, networkName) {
+    if(!deviceKey) throw('no deviceKey')    
+    if(!txHash) throw('no txHash')    
+    if(!networkName) throw('no networkName')    
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const client = new Client({
+        connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "INSERT INTO identities(device_key,tx_hash, network) \
+             VALUES ($1,$2,$3) "
+            , [deviceKey, txHash, networkName]);
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
+  }
+ 
 
   async getTxData(txHash,blockchain){
     await this.ethereumMgr.getTransaction(txHash,blockchain);
   }
+
+
+
 
 }
 module.exports = IdentityManagerMgr
