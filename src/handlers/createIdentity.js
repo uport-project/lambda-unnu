@@ -13,7 +13,7 @@ class CreateIdentityHandler {
       } catch(err) {
         console.log("Error on this.authMgr.verifyNisaba")
         console.log(err)
-        cb({ code: 401, message: err.message })
+        cb({ code: 401, message: err })
         return;
       }
   
@@ -69,16 +69,17 @@ class CreateIdentityHandler {
   
   
       try{
-        const txHash = await this.identityManagerMgr.createIdentity(body) 
-
+        const {managerAddress,txHash} = await this.identityManagerMgr.createIdentity(body) 
+        console.log(txHash)
+        
         //TODO: Wait for tx to be mined. Read log and store the triplet: deviceKey, proxyAddres, network/blockchain on the database (and also the txHash)
-
-        let ret={
+        
+        let resp={
             managerType: body.managerType,
-            managerAddress: '0x',
+            managerAddress: managerAddress,
             txHash: txHash
         }
-        cb(null, txHash)
+        cb(null, resp)
       } catch(err) {
         console.log("Error on this.identityManagerMgr.createIdentity")
         console.log(err)

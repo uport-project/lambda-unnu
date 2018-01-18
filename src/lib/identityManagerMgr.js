@@ -1,6 +1,6 @@
-import { IdentityManager } from 'uport-identity'
-import Contract from 'truffle-contract'
-import { lchmod } from 'fs';
+import { IdentityManager, MetaIdentityManager} from 'uport-identity'
+import Promise from 'bluebird'
+
 
 class IdentityManagerMgr {
 
@@ -28,13 +28,12 @@ class IdentityManagerMgr {
         throw('invalid managerType')
     }    
     
-    if (!idMidMgrsgr[networkName]) {
-      let provider=this.ethereumMgr.getProvider(networkName)
-      if(provider==null) throw ('null provider')
-      
-      let IdMgrContract = new Contract(idMgrArtifact)
-      IdMgrContract.setProvider(provider)
-      this.idMgrs[networkName] = await IdMgrContract.deployed()
+    if (!idMgrs[networkName]) {
+      let abi = idMgrArtifact.abi
+      let imAddr = idMgrArtifact.networks[this.ethereumMgr.getNetworkId(networkName)].address
+      let IdMgrContract = this.ethereumMgr.getContract(abi,networkName)
+      idMgrs[networkName] = IdMgrContract.at(imAddr)
+      idMgrs[networkName] = Promise.promisifyAll(idMgrs[networkName])
     }
   }
 
@@ -66,21 +65,30 @@ class IdentityManagerMgr {
       
 
     await this.initIdentityManager(managerType,blockchain)
-    let from = this.ethereumMgr.getAddress()
+    let from = this.ethereumMgr.getAddress() //TODO: read from provider
     let txOptions = {
       from: from,
       gas: 3000000,
-      gasPrice: this.ethereumMgr.getGasPrice(blockchain),
-      nonce: this.ethereumMgr.getNonce(from,blockchain)
+      gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
+      nonce: await this.ethereumMgr.getNonce(from,blockchain)
+    }
+    
+    //Return object
+    let ret={
+      managerAddress: idMgrs[blockchain].address
     }
     
     if (payload) {
-      return await idMgrs[blockchain].createIdentityWithCall(deviceKey, recoveryKey, payload.destination, payload.data, txOptions)
+      ret.txHash=await idMgrs[blockchain].createIdentityWithCallAsync(deviceKey, recoveryKey, payload.destination, payload.data, txOptions)
     } else {
-      return await idMgrs[blockchain].createIdentity(deviceKey, recoveryKey, txOptions)
+      ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKey, txOptions)
     }
+    return ret;
   }
 
+  async getTxData(txHash,blockchain){
+    await this.ethereumMgr.getTransaction(txHash,blockchain);
+  }
 
 }
 module.exports = IdentityManagerMgr
