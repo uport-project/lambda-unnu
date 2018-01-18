@@ -47,28 +47,28 @@ class LookupHandler {
         return;
       }
 
-      let txReceipt, identity;
+      let identity;
       //identity not found (need to get txReceipt)
-      if(!idCreationObj.tx_receipt){
+      if(!idCreationObj.identity){
         try{
-            let receiptObj = await this.identityManagerMgr.getTransactionReceipt(idCreationObj.tx_hash,body.blockchain) 
-            txReceipt= receiptObj.txReceipt;
-            identity = receiptObj.identity;
+            identity = await this.identityManagerMgr.getIdentityFromTxHash(idCreationObj.tx_hash,body.blockchain) 
+            if(!identity){
+                cb({ code: 400, message: 'null identity. Not mined yet?' })
+                return;
+            }
         } catch(err) {
-            console.log("Error on this.identityManagerMgr.getTransactionReceipt")
+            console.log("Error on this.identityManagerMgr.getIdentityFromTxHash")
             console.log(err)
             cb({ code: 500, message: err.message })
             return;
         }
       }else{
-        txReceipt=idCreationObj.tx_receipt;
         identity = idCreationObj.identity
     }
 
-      //TODO: Check if tx is not mined yet
-
+      
       let resp={
-        managerAddress: txReceipt.to,
+        managerAddress: idCreationObj.manager_address,
         identity: identity,
         blockchain: body.blockchain
       }
