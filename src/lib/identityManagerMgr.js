@@ -191,6 +191,13 @@ class IdentityManagerMgr {
     return abi.decodeEvent(eventAbi, log.data, log.topics)
 
   }
+ 
+
+  async getTxData(txHash,blockchain){
+    await this.ethereumMgr.getTransaction(txHash,blockchain);
+  }
+
+
 
 
 }

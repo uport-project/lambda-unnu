@@ -71,7 +71,7 @@ class CreateIdentityHandler {
       try{
         const {managerAddress,txHash} = await this.identityManagerMgr.createIdentity(body) 
         console.log(txHash)
-        
+
         let resp={
             managerType: body.managerType,
             managerAddress: managerAddress,
