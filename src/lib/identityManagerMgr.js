@@ -1,6 +1,7 @@
 import { IdentityManager, MetaIdentityManager} from 'uport-identity'
 import Promise from 'bluebird'
 import { Client } from 'pg'
+import abi from 'ethjs-abi'
 
 class IdentityManagerMgr {
 
@@ -95,13 +96,36 @@ class IdentityManagerMgr {
       ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKey, txOptions)
     }
 
-    await this.storeIdentityCreation(deviceKey,ret.txHash,blockchain)
+    await this.storeIdentityCreation(deviceKey,ret.txHash,blockchain,ret.managerAddress)
     return ret;
   }
 
-  async storeIdentityCreation(deviceKey, txHash, networkName) {
+  async storeIdentityCreation(deviceKey, txHash, networkName, managerAddress) {
     if(!deviceKey) throw('no deviceKey')    
     if(!txHash) throw('no txHash')    
+    if(!networkName) throw('no networkName')    
+    if(!managerAddress) throw('no managerAddress')    
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const client = new Client({
+        connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "INSERT INTO identities(device_key,tx_hash, network,manager_address) \
+             VALUES ($1,$2,$3,$4) "
+            , [deviceKey, txHash, networkName, managerAddress]);
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
+  }
+ 
+  async getIdentityCreation(deviceKey,networkName){
+    if(!deviceKey) throw('no deviceKey')    
     if(!networkName) throw('no networkName')    
     if(!this.pgUrl) throw('no pgUrl set')
 
@@ -112,14 +136,60 @@ class IdentityManagerMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "INSERT INTO identities(device_key,tx_hash, network) \
-             VALUES ($1,$2,$3) "
-            , [deviceKey, txHash, networkName]);
+            "SELECT tx_hash, manager_address, identity \
+               FROM identities \
+              WHERE device_key = $1 \
+                AND network = $2 \
+           ORDER BY created \
+              LIMIT 1"
+            , [deviceKey, networkName]);
+        return res.rows[0];
     } catch (e){
         throw(e);
     } finally {
         await client.end()
     }
+  }
+
+  async getIdentityFromTxHash(txHash,blockchain){
+    if(!txHash) throw('no txHash')    
+    if(!blockchain) throw('no blockchain')    
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const txReceipt=await this.ethereumMgr.getTransactionReceipt(txHash,blockchain);
+    if(!txReceipt) return null;
+
+    const decodedLogs = await this.decodeLogs(txReceipt)
+    const identity = decodedLogs.identity
+    
+    const client = new Client({
+      connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "UPDATE identities \
+                SET identity = $2 \
+              WHERE tx_hash = $1"
+            , [txHash, identity]);
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
+
+    return identity;
+  }
+
+  async decodeLogs(txReceipt){
+    if(!txReceipt) throw('no txReceipt') 
+    const idMgrArtifact =  MetaIdentityManager.v2 //TODO: need to fix this   
+    
+    let eventAbi = idMgrArtifact.abi.filter((o) => { return o.name === 'LogIdentityCreated' })[0]
+    let log = txReceipt.logs[0] //I hope is always the first one
+    return abi.decodeEvent(eventAbi, log.data, log.topics)
+
   }
  
 

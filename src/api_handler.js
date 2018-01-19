@@ -5,13 +5,18 @@ const AuthMgr = require('./lib/authMgr')
 const EthereumMgr = require('./lib/ethereumMgr')
 const IdentityManagerMgr = require('./lib/identityManagerMgr')
 const CreateIdentityHandler = require('./handlers/createIdentity')
+const LookupHandler = require('./handlers/lookup')
 
 let authMgr = new AuthMgr()
 let ethereumMgr = new EthereumMgr()
 let identityManagerMgr = new IdentityManagerMgr(ethereumMgr)
+
 let createIdentity = new CreateIdentityHandler(authMgr,identityManagerMgr)
+let lookupHandler = new LookupHandler(identityManagerMgr)
 
 module.exports.createIdentity = (event, context, callback) => { preHandler(createIdentity,event,context,callback) }
+module.exports.lookup = (event, context, callback) => { preHandler(lookupHandler,event,context,callback) }
+
 
 const preHandler = (handler,event,context,callback) =>{
   console.log(event)

@@ -71,9 +71,7 @@ class CreateIdentityHandler {
       try{
         const {managerAddress,txHash} = await this.identityManagerMgr.createIdentity(body) 
         console.log(txHash)
-        
-        //TODO: Wait for tx to be mined. Read log and store the triplet: deviceKey, proxyAddres, network/blockchain on the database (and also the txHash)
-        
+
         let resp={
             managerType: body.managerType,
             managerAddress: managerAddress,

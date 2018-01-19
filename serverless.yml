@@ -38,3 +38,10 @@ functions:
      - http:
          path: createIdentity
          method: post
+  lookup:
+    handler: src/api_handler.lookup
+    description: uPort lookup identity (proxy address) for deviceKey"
+    events:
+     - http:
+         path: lookup
+         method: post
