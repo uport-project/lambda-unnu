@@ -13,17 +13,17 @@ Unnu is a server part of the uport-framework. The main feature is to create the 
 ### Create uPort identity
 Calls the IdentityFactory, IdentityManager, or MetaIdentityManager contract to create the initial controller and proxy contract(uPortId). The proxy contract is configured to be controlled by the deviceKey. The identity factory is called in the blockchain specified by blockchain body data. If unnu does not know how to access the blockchain it returns a 404 status.
 
-The endpoints are private, only valid tokens from nisaba are allowed.
+The endpoint is private, only valid "fuel tokens" from nisaba are allowed.
 
 ### Endpoint createIdentity
 
 `POST /createIdentity`
 
-This endpoint uses v2 of the (Meta)IdentityManager. It also allows you to make an arbitrary call from the newly created identity.
+This endpoint uses the (Meta)IdentityManager. It also allows you to make an arbitrary call from the newly created identity.
 
 #### Header
 ```
-Authorization: Bearer <jwt token>
+Authorization: Bearer <jwt fuel token>
 ```
 
 #### Body
@@ -46,6 +46,7 @@ Note that payload here is optional. If not given, an identity will be created wi
 | Status |     Message    |                               |
 |:------:|----------------|-------------------------------|
 | 200    | Ok.            | uPort contracts created       |
+| 400    | Bad Request    | Parameter missing or invalid  |
 | 403    | Forbidden      | JWT token missing or invalid  |
 | 404    | Not found      | Blockchain not found          |
 | 500    | Internal Error | Internal error                |
@@ -58,3 +59,38 @@ Note that payload here is optional. If not given, an identity will be created wi
   txHash: <tx hash>
 }
 ```
+
+### Lookup uPort identity
+Look for a uPort identity created by a deviceKey.
+
+### Endpoint lookup
+
+`POST /lookup`
+
+#### Body
+```
+{
+  deviceKey: <device key>
+}
+```
+
+#### Response
+
+| Status |     Message    |                               |
+|:------:|----------------|-------------------------------|
+| 200    | Ok.            | uPort contracts created       |
+| 400    | Bad Request    | Parameter missing or invalid  |
+| 404    | Not found      | Record not found              |
+| 404    | Not found      | Null identity. Not mined?     |
+| 500    | Internal Error | Internal error                |
+
+#### Response data
+```
+{
+  managerType: < "IdentityManager" | "MetaIdentityManager" >,
+  managerAddress: <address>,
+  identity: <identity address>
+  blockchain: <blockchain name>
+}
+```
+

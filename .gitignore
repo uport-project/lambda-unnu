@@ -60,5 +60,5 @@ typings/
 #serverless
 .serverless
 
-curl_scripts/
+sample_events/
 .webpack/
