@@ -68,21 +68,13 @@ class LookupHandler {
 
       
       let resp={
+        managerType: idCreationObj.manager_type,
         managerAddress: idCreationObj.manager_address,
         identity: identity,
         blockchain: body.blockchain
       }
       cb(null, resp)
       return;
-    
-
-
-
-
-
-
-        
-
   
     }
   
