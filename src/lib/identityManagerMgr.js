@@ -125,9 +125,8 @@ class IdentityManagerMgr {
     }
   }
  
-  async getIdentityCreation(deviceKey,networkName){
+  async getIdentityCreation(deviceKey){
     if(!deviceKey) throw('no deviceKey')    
-    if(!networkName) throw('no networkName')    
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -137,13 +136,12 @@ class IdentityManagerMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "SELECT tx_hash, manager_type, manager_address, identity \
+            "SELECT tx_hash, manager_type, manager_address, identity, network \
                FROM identities \
               WHERE device_key = $1 \
-                AND network = $2 \
            ORDER BY created \
               LIMIT 1"
-            , [deviceKey, networkName]);
+            , [deviceKey]);
         return res.rows[0];
     } catch (e){
         throw(e);
