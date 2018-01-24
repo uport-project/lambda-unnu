@@ -3,11 +3,14 @@
 #### Contents
 
 - [Createidentity Seq](#createidentity-seq)
+- [Lookup Seq](#lookup-seq)
 - [How to write diagrams](#how-to-write-diagrams)
 - [How to generate diagrams](#how-to-generate-diagrams)
 
 #### Createidentity Seq
 ![Createidentity Seq](./img/createIdentity.seq.png)
+#### Lookup Seq
+![Lookup Seq](./img/lookup.seq.png)
 
 #### How to write diagrams
 

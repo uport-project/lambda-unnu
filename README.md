@@ -99,3 +99,7 @@ Look for a uPort identity created by a deviceKey.
 }
 ```
 
+#### Sequence Diagram
+
+![lookup seq diagram](./diagrams/img/lookup.seq.png)
+
