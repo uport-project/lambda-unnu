@@ -1,7 +1,7 @@
 # lambda-unnu
-
-# uport-unnu
 Creator of Identities
+
+_Jamaica and Belize: Second person plural pronoun; You plural._
 
 [Diagrams](./diagrams/README.md)
 
@@ -59,6 +59,11 @@ Note that payload here is optional. If not given, an identity will be created wi
   txHash: <tx hash>
 }
 ```
+
+#### Sequence Diagram
+
+![createIdentity seq diagram](./diagrams/img/createIdentity.seq.png)
+
 
 ### Lookup uPort identity
 Look for a uPort identity created by a deviceKey.
