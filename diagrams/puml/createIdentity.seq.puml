@@ -1,0 +1,57 @@
+@startuml
+participant "uPort Mobile App" as uPort
+participant "uPort::unnu" as unnu
+participant "Ethereum Node" as blockchain
+database "Database" as db
+
+
+uPort -> unnu: Create Identity\nPOST /createIdentity
+note left of unnu #FFAAAA
+Authorization: Bearer <jwt token>
+end note
+note left of unnu #FFAAAA
+{
+  deviceKey: <device key>,
+  recoveryKey: <recovery key>,
+  payload: {
+    destination: <address>,
+    data: <calldata>
+  },
+  blockchain: <blockchain name>,
+  managerType: < "IdentityManager" | "MetaIdentityManager" >
+}
+end note
+activate unnu
+unnu -> unnu: JWT Token Validation
+unnu -> unnu: Sign Ethereum TX
+note right
+{
+  from: <unnu key>,
+  to: <(Meta)IdentityManager address on blockchain>
+  contract: (Meta)IdentityManager,
+  function: createIdentity,
+  params: {
+    userKey: <device key>,
+    recoveryKey: <recovery key>
+  }
+}
+end note
+unnu -> blockchain: eth_sendRawTransaction
+activate blockchain
+blockchain -> unnu: txHash
+deactivate blockchain
+
+unnu -> db: INSERT deviceKey, txHash, blockchain, managerType, managerAddress
+
+unnu -> uPort: 200 uPort Contracts Created
+deactivate unnu
+note left of unnu #FFAAAA
+{
+  managerType: <manager name>,
+  managerAddress: <manager address>,
+  txHash: <tx hash>
+}
+end note
+
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+participant "uPort Mobile App" as uPort
+participant "uPort::unnu" as unnu
+participant "Ethereum Node" as blockchain
+database "Database" as db
+
+
+uPort -> unnu: Lookup Identity\nPOST /lookup
+note left of unnu #FFAAAA
+{
+  deviceKey: <device key>
+}
+end note
+activate unnu
+unnu -> db: SELECT identity, txHash, managerType, managerAddress, blockchain \nWHERE deviceKey
+
+group If identity not set in db
+
+  unnu -> blockchain: eth_getTransactionReceipt(txHash)
+  activate blockchain
+  blockchain -> unnu: txReceipt
+  deactivate blockchain
+
+  unnu -> unnu: identity= decodeLogs from txReceipt
+
+  unnu -> db: UPDATE identity \nWHERE txHash
+end
+
+unnu -> uPort: 200 <identity>
+deactivate unnu
+note left of unnu #FFAAAA
+{
+  managerType: <manager name>,
+  managerAddress: <manager address>,
+  identity: <identity>
+  blockchain: <blockchain>
+}
+end note
+
+
+@enduml
