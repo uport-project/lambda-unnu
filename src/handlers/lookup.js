@@ -40,7 +40,7 @@ class LookupHandler {
 
       //no record found
       if(!idCreationObj){
-        cb({ code: 400, message: 'no record found' })
+        cb({ code: 404, message: 'no record found' })
         return;
       }
 
@@ -51,7 +51,7 @@ class LookupHandler {
           console.log("calling identityManagerMgr.getIdentityFromTxHash")
           identity = await this.identityManagerMgr.getIdentityFromTxHash(idCreationObj.tx_hash,idCreationObj.network) 
           if(!identity){
-              cb({ code: 400, message: 'null identity. Not mined yet?' })
+              cb({ code: 404, message: 'null identity. Not mined yet?' })
               return;
           }
         } catch(err) {
