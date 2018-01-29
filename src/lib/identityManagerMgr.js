@@ -74,6 +74,7 @@ class IdentityManagerMgr {
         throw('invalid managerType')
     }
 
+
     await this.initIdentityManager(managerType,blockchain)
     let from = this.ethereumMgr.getAddress() //TODO: read from provider
     let txOptions = {
