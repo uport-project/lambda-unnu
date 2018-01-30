@@ -95,14 +95,15 @@ class IdentityManagerMgr {
       ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKey, txOptions)
     }
 
-    await this.storeIdentityCreation(deviceKey,ret.txHash,blockchain,ret.managerAddress)
+    await this.storeIdentityCreation(deviceKey, ret.txHash, blockchain, managerType, ret.managerAddress)
     return ret;
   }
 
-  async storeIdentityCreation(deviceKey, txHash, networkName, managerAddress) {
+  async storeIdentityCreation(deviceKey, txHash, networkName, managerType, managerAddress) {
     if(!deviceKey) throw('no deviceKey')
     if(!txHash) throw('no txHash')
     if(!networkName) throw('no networkName')
+    if(!managerType) throw('no managerType')
     if(!managerAddress) throw('no managerAddress')
     if(!this.pgUrl) throw('no pgUrl set')
 
@@ -113,9 +114,9 @@ class IdentityManagerMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "INSERT INTO identities(device_key,tx_hash, network,manager_address) \
-             VALUES ($1,$2,$3,$4) "
-            , [deviceKey, txHash, networkName, managerAddress]);
+            "INSERT INTO identities(device_key,tx_hash, network,manager_type,manager_address) \
+             VALUES ($1,$2,$3,$4,$5) "
+            , [deviceKey, txHash, networkName, managerType, managerAddress]);
     } catch (e){
         throw(e);
     } finally {
@@ -123,9 +124,8 @@ class IdentityManagerMgr {
     }
   }
 
-  async getIdentityCreation(deviceKey,networkName){
+  async getIdentityCreation(deviceKey){
     if(!deviceKey) throw('no deviceKey')
-    if(!networkName) throw('no networkName')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -135,13 +135,12 @@ class IdentityManagerMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "SELECT tx_hash, manager_address, identity \
+            "SELECT tx_hash, manager_type, manager_address, identity, network \
                FROM identities \
               WHERE device_key = $1 \
-                AND network = $2 \
            ORDER BY created \
               LIMIT 1"
-            , [deviceKey, networkName]);
+            , [deviceKey]);
         return res.rows[0];
     } catch (e){
         throw(e);

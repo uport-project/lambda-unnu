@@ -60,7 +60,7 @@ typings/
 #serverless
 .serverless
 
-curl_scripts/
+sample_events/
 .webpack/
 
 .DS_Store

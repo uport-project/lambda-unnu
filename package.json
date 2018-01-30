@@ -1,6 +1,6 @@
 {
   "name": "lambda-unnu",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "uPort creator of identities",
   "main": "index.js",
   "scripts": {
