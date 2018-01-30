@@ -21,12 +21,23 @@ const IdentityManagerMgr = require('../identityManagerMgr')
 describe('IdentityManagerMgr', () => {
 
     let sut;
+    let txReceiptMock = {
+      "transactionHash": "0x9fc76417374aa880d4449a1f7f31ec597f00b1f6f3dd2d66f4c9c6c445836d8b",
+      "transactionIndex": 0,
+      "blockHash": "0xef95f2f1ed3ca60b048b4bf67cde2195961e0bba6f70bcbea9a2c4e133e34b46",
+      "blockNumber": 3,
+      "contractAddress": "0x11f4d0A3c12e86B4b5F39B213F7E19D048276DAe",
+      "cumulativeGasUsed": 314159,
+      "gasUsed": 30234,
+      "logs": []
+    };
     let mockEthereumMgr={
         getProvider: jest.fn(),
         getNetworkId: jest.fn(),
         getAddress: jest.fn(),
         getGasPrice: jest.fn(),
         getNonce: jest.fn(),
+        getTransactionReceipt: jest.fn(() => { return Promise.resolve(txReceiptMock) })
     };
     let deviceKey = '0x8f7a1e41018fbb94caa18281e4d6acfc77521672'
     let txHash = '0x6e2fce45a5b97d9c7902f869851824013f6cf00a7c14a30b8158945844d24f21'
@@ -86,8 +97,6 @@ describe('IdentityManagerMgr', () => {
         })
     })
 
-    describe('createIdentity', () => {
-
       test('no deviceKey', (done) => {
         sut.createIdentity({})
           .then((resp)=> {
@@ -146,6 +155,27 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
+      test('createIdentity() invalid managerType', (done) => {
+
+        sut.createIdentity({
+          deviceKey: deviceKey,
+          recoveryKey: "",
+          blockchain: networkName,
+          managerType: "InvalidIdentityManager",
+          payload: {
+            destination: "0x0",
+            data: "dummy"
+          }
+        })
+          .then((resp)=> {
+              fail("shouldn't return"); done()
+          })
+          .catch( (err)=>{
+              expect(err).toEqual('invalid managerType')
+              done()
+          })
+      })
+
       test.skip('empty recoverykey', (done) => {
 
         sut.identityManagers =  jest.fn(() => { return Promise.resolve(
@@ -156,7 +186,7 @@ describe('IdentityManagerMgr', () => {
 
         sut.createIdentity({
           deviceKey: deviceKey,
-          recoveryKey: "",
+          recoveryKey: deviceKey,
           blockchain: networkName,
           managerType: "IdentityManager",
           payload: {
@@ -217,6 +247,20 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
+      test('storeIdentityCreation() no pgUrl', (done) => {
+        if (sut.isSecretsSet()){
+          sut.setSecrets({PG_URL: null})
+        }
+        sut.storeIdentityCreation(deviceKey, txHash, networkName, managerAddress)
+          .then((resp)=> {
+              fail("shouldn't return"); done()
+          })
+          .catch( (err)=>{
+              expect(err).toEqual('no pgUrl set')
+              done()
+          })
+      })
+
       test('storeIdentityCreation() happy path', (done) =>{
         sut.setSecrets({PG_URL: 'fake'})
         pgClientMock.connect=jest.fn()
@@ -258,6 +302,20 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
+      test('getIdentityCreation() no pgUrl', (done) => {
+        if (sut.isSecretsSet()){
+          sut.setSecrets({PG_URL: null})
+        }
+        sut.getIdentityCreation(deviceKey, networkName)
+          .then((resp)=> {
+              fail("shouldn't return"); done()
+          })
+          .catch( (err)=>{
+              expect(err).toEqual('no pgUrl set')
+              done()
+          })
+      })
+
       test('getIdentityCreation() happy path', (done) =>{
         sut.setSecrets({PG_URL: 'fake'})
         pgClientMock.connect=jest.fn()
@@ -282,7 +340,65 @@ describe('IdentityManagerMgr', () => {
         })
     });
 
+    test('getIdentityFromTxHash() no txHash', (done) => {
+      sut.getIdentityFromTxHash(null)
+        .then((resp)=> {
+            fail("shouldn't return"); done()
+        })
+        .catch( (err)=>{
+            expect(err).toEqual('no txHash')
+            done()
+        })
     })
 
+    test('getIdentityFromTxHash() no blockchain', (done) => {
+      sut.getIdentityFromTxHash(txHash, null)
+        .then((resp)=> {
+            fail("shouldn't return"); done()
+        })
+        .catch( (err)=>{
+            expect(err).toEqual('no blockchain')
+            done()
+        })
+    })
+
+    test('getIdentityFromTxHash() no pgUrl', (done) => {
+      if (sut.isSecretsSet()){
+        sut.setSecrets({PG_URL: null})
+      }
+      sut.getIdentityFromTxHash(txHash, networkName)
+        .then((resp)=> {
+            fail("shouldn't return"); done()
+        })
+        .catch( (err)=>{
+            expect(err).toEqual('no pgUrl set')
+            done()
+        })
+    })
+
+    test('getIdentityFromTxHash() happy path', (done) => {
+      sut.setSecrets({PG_URL: 'fake'})
+      sut.decodeLogs =  jest.fn(() => { return Promise.resolve(
+        {identity: deviceKey}
+      )})
+
+      pgClientMock.connect=jest.fn()
+      pgClientMock.connect.mockClear()
+      pgClientMock.end.mockClear()
+      pgClientMock.query=jest.fn(()=>{ return Promise.resolve( {rows:["ok"]} )})
+      sut.getIdentityFromTxHash(txHash,networkName)
+      .then((resp)=> {
+          expect(pgClientMock.connect).toBeCalled()
+          expect(pgClientMock.query).toBeCalled()
+          expect(pgClientMock.query).toBeCalledWith(
+            "UPDATE identities \
+                SET identity = $2 \
+              WHERE tx_hash = $1"
+            , [txHash, deviceKey]);
+          expect(pgClientMock.end).toBeCalled()
+          expect(resp).toEqual(deviceKey)
+          done()
+      })
+    })
 
 })
