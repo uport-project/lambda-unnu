@@ -37,12 +37,13 @@ describe('IdentityManagerMgr', () => {
         getAddress: jest.fn(),
         getGasPrice: jest.fn(),
         getNonce: jest.fn(),
-        getTransactionReceipt: jest.fn(() => { return Promise.resolve(txReceiptMock) })
+        getTransactionReceipt: jest.fn(),
     };
     let deviceKey = '0x8f7a1e41018fbb94caa18281e4d6acfc77521672'
     let txHash = '0x6e2fce45a5b97d9c7902f869851824013f6cf00a7c14a30b8158945844d24f21'
     let networkName = 'rinkeby'
     let managerAddress = '0x95f35f87608c3a871838f11cbefa8bd76fdf5686'
+    let managerType = 'IdentityManager'
 
     beforeAll(() => {
         sut = new IdentityManagerMgr(mockEthereumMgr);
@@ -97,7 +98,7 @@ describe('IdentityManagerMgr', () => {
         })
     })
 
-      test('no deviceKey', (done) => {
+      test('createIdentity() no deviceKey', (done) => {
         sut.createIdentity({})
           .then((resp)=> {
               fail("shouldn't return"); done()
@@ -108,7 +109,7 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
-      test('no managerType', (done) => {
+      test('createIdentity() no managerType', (done) => {
         sut.createIdentity({deviceKey: deviceKey, blockchain: networkName})
           .then((resp)=> {
               fail("shouldn't return"); done()
@@ -119,7 +120,7 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
-      test('no payload destination', (done) => {
+      test('createIdentity() no payload destination', (done) => {
         sut.createIdentity({
           deviceKey: deviceKey,
           blockchain: networkName,
@@ -137,7 +138,7 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
-      test('no payload data', (done) => {
+      test('createIdentity() no payload data', (done) => {
         sut.createIdentity({
           deviceKey: deviceKey,
           blockchain: networkName,
@@ -236,8 +237,19 @@ describe('IdentityManagerMgr', () => {
           })
       })
 
-      test('storeIdentityCreation() no managerAddress', (done) => {
+      test('storeIdentityCreation() no managerType', (done) => {
         sut.storeIdentityCreation(deviceKey, txHash, networkName, null)
+          .then((resp)=> {
+              fail("shouldn't return"); done()
+          })
+          .catch( (err)=>{
+              expect(err).toEqual('no managerType')
+              done()
+          })
+      })
+
+      test('storeIdentityCreation() no manager', (done) => {
+        sut.storeIdentityCreation(deviceKey, txHash, networkName, managerAddress)
           .then((resp)=> {
               fail("shouldn't return"); done()
           })
@@ -251,7 +263,7 @@ describe('IdentityManagerMgr', () => {
         if (sut.isSecretsSet()){
           sut.setSecrets({PG_URL: null})
         }
-        sut.storeIdentityCreation(deviceKey, txHash, networkName, managerAddress)
+        sut.storeIdentityCreation(deviceKey, txHash, networkName, managerType, managerAddress)
           .then((resp)=> {
               fail("shouldn't return"); done()
           })
@@ -267,13 +279,13 @@ describe('IdentityManagerMgr', () => {
         pgClientMock.connect.mockClear()
         pgClientMock.end.mockClear()
         pgClientMock.query=jest.fn(()=>{ return Promise.resolve("ok")})
-        sut.storeIdentityCreation(deviceKey,txHash,networkName,managerAddress)
+        sut.storeIdentityCreation(deviceKey,txHash,networkName,managerType,managerAddress)
         .then((resp)=> {
             expect(pgClientMock.connect).toBeCalled()
             expect(pgClientMock.query).toBeCalled()
             expect(pgClientMock.query).toBeCalledWith(
-              "INSERT INTO identities(device_key,tx_hash, network,manager_address)\
-              VALUES ($1,$2,$3,$4) ",[ deviceKey, txHash, networkName, managerAddress]);
+              "INSERT INTO identities(device_key,tx_hash, network,manager_type,manager_address)\
+              VALUES ($1,$2,$3,$4,$5) ",[ deviceKey, txHash, networkName, managerType, managerAddress]);
             expect(pgClientMock.end).toBeCalled()
             expect(resp).toBeUndefined()
             done()
@@ -287,17 +299,6 @@ describe('IdentityManagerMgr', () => {
           })
           .catch( (err)=>{
               expect(err).toEqual('no deviceKey')
-              done()
-          })
-      })
-
-      test('getIdentityCreation() no networkName', (done) => {
-        sut.getIdentityCreation(deviceKey, null)
-          .then((resp)=> {
-              fail("shouldn't return"); done()
-          })
-          .catch( (err)=>{
-              expect(err).toEqual('no networkName')
               done()
           })
       })
@@ -327,13 +328,12 @@ describe('IdentityManagerMgr', () => {
             expect(pgClientMock.connect).toBeCalled()
             expect(pgClientMock.query).toBeCalled()
             expect(pgClientMock.query).toBeCalledWith(
-            "SELECT tx_hash, manager_address, identity \
+            "SELECT tx_hash, manager_type, manager_address, identity, network \
                FROM identities \
               WHERE device_key = $1 \
-                AND network = $2 \
            ORDER BY created \
               LIMIT 1"
-              , [deviceKey, networkName]);
+              , [deviceKey]);
             expect(pgClientMock.end).toBeCalled()
             expect(resp).toEqual("ok")
             done()
@@ -376,18 +376,33 @@ describe('IdentityManagerMgr', () => {
         })
     })
 
+    test('getIdentityFromTxHash() no txReceipt', (done) => {
+      sut.setSecrets({PG_URL: 'fake'})
+      mockEthereumMgr.getTransactionReceipt=jest.fn(() => { return Promise.resolve(null)})
+      mockEthereumMgr.getTransactionReceipt.mockClear()
+      sut.getIdentityFromTxHash(txHash, networkName)
+        .then((resp)=> {
+            expect(mockEthereumMgr.getTransactionReceipt).toBeCalled()
+            expect(resp).toBeNull()
+            done();
+        })
+    })
+
     test('getIdentityFromTxHash() happy path', (done) => {
       sut.setSecrets({PG_URL: 'fake'})
       sut.decodeLogs =  jest.fn(() => { return Promise.resolve(
         {identity: deviceKey}
       )})
 
+      mockEthereumMgr.getTransactionReceipt=jest.fn(() => { return Promise.resolve(txReceiptMock) })
+      mockEthereumMgr.getTransactionReceipt.mockClear()
       pgClientMock.connect=jest.fn()
       pgClientMock.connect.mockClear()
       pgClientMock.end.mockClear()
       pgClientMock.query=jest.fn(()=>{ return Promise.resolve( {rows:["ok"]} )})
       sut.getIdentityFromTxHash(txHash,networkName)
       .then((resp)=> {
+          expect(mockEthereumMgr.getTransactionReceipt).toBeCalled()
           expect(pgClientMock.connect).toBeCalled()
           expect(pgClientMock.query).toBeCalled()
           expect(pgClientMock.query).toBeCalledWith(
