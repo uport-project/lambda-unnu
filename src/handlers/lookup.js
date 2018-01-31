@@ -34,7 +34,7 @@ class LookupHandler {
       } catch(err) {
         console.log("Error on this.identityManagerMgr.getIdentityCreation")
         console.log(err)
-        cb({ code: 500, message: err.message })
+        cb({ code: 500, message: err })
         return;
       }
 
