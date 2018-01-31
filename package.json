@@ -1,6 +1,6 @@
 {
   "name": "lambda-unnu",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "uPort creator of identities",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,10 @@
     "type": "git",
     "url": "git+https://github.com/uport-project/lambda-unnu.git"
   },
-  "author": "",
+  "contributors":[
+    { "name" : "Andres Junge", "email" : "andres.junge@consensys.net" },
+    { "name" : "Cristobal Castillo", "email" : "cristobal.castillo@consensys.net" }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/uport-project/lambda-unnu/issues"
