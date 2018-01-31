@@ -3,6 +3,12 @@ Creator of Identities
 
 _Jamaica and Belize: Second person plural pronoun; You plural._
 
+[![CircleCI](https://circleci.com/gh/uport-project/lambda-unnu.svg?style=svg&circle-token=f536b0a56ba4f26afaf4b2d4dbf29962e9357108)](https://circleci.com/gh/uport-project/lambda-unnu)
+
+
+[![codecov](https://codecov.io/gh/uport-project/lambda-unnu/branch/master/graph/badge.svg?token=dM67JrwqVX)](https://codecov.io/gh/uport-project/lambda-unnu)
+
+
 [Diagrams](./diagrams/README.md)
 
 ## Description
