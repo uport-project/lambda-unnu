@@ -9,9 +9,8 @@ class IdentityManagerMgr {
     this.identityManagers = {}
     this.metaIdentityManagers = {}
     this.ethereumMgr=ethereumMgr;
-    
     this.pgUrl=null
-    
+
   }
 
   isSecretsSet(){
@@ -38,8 +37,8 @@ class IdentityManagerMgr {
         break;
       default:
         throw('invalid managerType')
-    }    
-    
+    }
+
     if (!idMgrs[networkName]) {
       let abi = idMgrArtifact.abi
       let imAddr = idMgrArtifact.networks[this.ethereumMgr.getNetworkId(networkName)].address
@@ -50,10 +49,10 @@ class IdentityManagerMgr {
   }
 
   async createIdentity({deviceKey, recoveryKey, blockchain, managerType, payload}) {
-    if(!deviceKey) throw('no deviceKey')    
+    if(!deviceKey) throw('no deviceKey')
     if(!managerType) throw('no managerType')
-    if (payload && !payload.destination) throw('payload but no payload.destination') 
-    if (payload && !payload.data) throw('payload but no payload.data') 
+    if (payload && !payload.destination) throw('payload but no payload.destination')
+    if (payload && !payload.data) throw('payload but no payload.data')
     let recoveryKeyFix
 
     let zeroHexString = /^0x[^1-9]+$/
@@ -73,8 +72,8 @@ class IdentityManagerMgr {
         break;
       default:
         throw('invalid managerType')
-    }    
-      
+    }
+
 
     await this.initIdentityManager(managerType,blockchain)
     let from = this.ethereumMgr.getAddress() //TODO: read from provider
@@ -84,12 +83,12 @@ class IdentityManagerMgr {
       gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
       nonce: await this.ethereumMgr.getNonce(from,blockchain)
     }
-    
+
     //Return object
     let ret={
       managerAddress: idMgrs[blockchain].address
     }
-    
+
     if (payload) {
       ret.txHash=await idMgrs[blockchain].createIdentityWithCallAsync(deviceKey, recoveryKey, payload.destination, payload.data, txOptions)
     } else {
@@ -101,11 +100,11 @@ class IdentityManagerMgr {
   }
 
   async storeIdentityCreation(deviceKey, txHash, networkName, managerType, managerAddress) {
-    if(!deviceKey) throw('no deviceKey')    
-    if(!txHash) throw('no txHash')    
-    if(!networkName) throw('no networkName')    
-    if(!managerType) throw('no managerType')    
-    if(!managerAddress) throw('no managerAddress')    
+    if(!deviceKey) throw('no deviceKey')
+    if(!txHash) throw('no txHash')
+    if(!networkName) throw('no networkName')
+    if(!managerType) throw('no managerType')
+    if(!managerAddress) throw('no managerAddress')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -124,9 +123,9 @@ class IdentityManagerMgr {
         await client.end()
     }
   }
- 
+
   async getIdentityCreation(deviceKey){
-    if(!deviceKey) throw('no deviceKey')    
+    if(!deviceKey) throw('no deviceKey')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -151,8 +150,8 @@ class IdentityManagerMgr {
   }
 
   async getIdentityFromTxHash(txHash,blockchain){
-    if(!txHash) throw('no txHash')    
-    if(!blockchain) throw('no blockchain')    
+    if(!txHash) throw('no txHash')
+    if(!blockchain) throw('no blockchain')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const txReceipt=await this.ethereumMgr.getTransactionReceipt(txHash,blockchain);
@@ -160,7 +159,7 @@ class IdentityManagerMgr {
 
     const decodedLogs = await this.decodeLogs(txReceipt)
     const identity = decodedLogs.identity
-    
+
     const client = new Client({
       connectionString: this.pgUrl,
     })
@@ -182,15 +181,15 @@ class IdentityManagerMgr {
   }
 
   async decodeLogs(txReceipt){
-    if(!txReceipt) throw('no txReceipt') 
-    const idMgrArtifact =  MetaIdentityManager.v2 //TODO: need to fix this   
-    
+    if(!txReceipt) throw('no txReceipt')
+    const idMgrArtifact =  MetaIdentityManager.v2 //TODO: need to fix this
+
     let eventAbi = idMgrArtifact.abi.filter((o) => { return o.name === 'LogIdentityCreated' })[0]
     let log = txReceipt.logs[0] //I hope is always the first one
     return abi.decodeEvent(eventAbi, log.data, log.topics)
 
   }
- 
+
 
   async getTxData(txHash,blockchain){
     await this.ethereumMgr.getTransaction(txHash,blockchain);
