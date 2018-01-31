@@ -6,7 +6,7 @@ describe('AuthMgr', () => {
     let nisabaPub='033ee5fb940cb6803ac9b00f89011567d049e80c9066c5229078dde93da0872d67'
     let validToken="eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpc3MiOiJuaXNhYmEudXBvcnQubWUiLCJpYXQiOjE1MTU3Mjk5MzUsImV4cCI6MTUxNTczMDUzNSwic3ViIjoiMHg5ZjdhMWU0MTAxOGZiYjk0Y2FhMTgyODFlNGQ2YWNmYzc3NTIxNjc5IiwiYXVkIjpbInVubnUudXBvcnQubWUiLCJzZW5zdWkudXBvcnQubWUiXSwicGhvbmVOdW1iZXIiOiI1Njk5ODcwNjk2MiJ9.nypufsTQD6EYMM6SRsuL4ODHPvLOph80G4avvrxGoBcWBpOZEZVQ7y-1putS8yk9LQXv3mEqrfefO8CPACEEEA"
     let invalidTokenSig="eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpc3MiOiIyb3B1YVZXQW5UNWVLdjFCN2dQY25nOE5kdjdYeTRhakFNMSIsImlhdCI6MTUwOTEzMTcwMCwiYXVkIjoiMm9lWHVmSEdEcFU1MWJmS0JzWkRkdTdKZTl3ZUozcjdzVkciLCJ0eXBlIjoibm90aWZpY2F0aW9ucyIsInZhbHVlIjoiYXJuOmF3czpzbnM6dXMtd2VzdC0yOjExMzE5NjIxNjU1ODplbmRwb2ludC9HQ00vdVBvcnQvZDlkM2EzMmEtNjc4NC0zYWMyLTk0ZjUtOGY5YTVkZDcxMmNhIiwiZXhwIjoxNTA5NzM2NTAwfQ.9aoOameGrjUakg_7BaBnK3_Ru2F65Cq6KJ2XCxTawfg1mVJAp61Yekjll5jlkKzBBVdqi3BNv8wj6zmCdgYvbm"
-    
+
 
     beforeAll(() => {
         sut = new AuthMgr();
@@ -15,7 +15,7 @@ describe('AuthMgr', () => {
     test('empty constructor', () => {
         expect(sut).not.toBeUndefined();
         expect(sut.nisabaPub).toBeNull();
-        
+
     });
 
     test('is isSecretsSet', () => {
@@ -118,7 +118,6 @@ describe('AuthMgr', () => {
                 done()
             })
         })
-        
 
 
     })

@@ -18,7 +18,7 @@ class EthereumMgr {
 
     this.web3s = {}
     this.gasPrices = {}
-    
+
   }
 
   isSecretsSet(){
@@ -28,11 +28,11 @@ class EthereumMgr {
   setSecrets(secrets){
       this.pgUrl=secrets.PG_URL;
       this.seed=secrets.SEED;
-  
+
       const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed)
       this.signer = new HDSigner(hdPrivKey)
-  
-      const txSigner= { 
+
+      const txSigner= {
         signTransaction: (tx_params, cb) => {
           let tx = new Transaction(tx_params)
           let rawTx = tx.serialize().toString('hex')
@@ -48,7 +48,7 @@ class EthereumMgr {
         let web3 = new Web3(provider)
         web3.eth = Promise.promisifyAll(web3.eth)
         this.web3s[network] = web3
-  
+
         this.gasPrices[network]= DEFAULT_GAS_PRICE;
       }
   }
@@ -100,8 +100,8 @@ class EthereumMgr {
   }
 
   async getNonce(address, networkName) {
-    if(!address) throw('no address')    
-    if(!networkName) throw('no networkName')    
+    if(!address) throw('no address')
+    if(!networkName) throw('no networkName')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -126,9 +126,9 @@ class EthereumMgr {
         await client.end()
     }
   }
- 
 
-  
+
+
 
 }
 
