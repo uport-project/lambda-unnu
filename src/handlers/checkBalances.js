@@ -30,11 +30,12 @@ class CheckBalancesHandler {
 
             if(balanceWei < threshold){
                 console.log("HEY!!!")
+                let etherscanHost=(network==='mainnet')?'':network+'.';
 
                 let thresholdEth=Unit.fromWei(threshold, 'ether');
                 let balanceEth=Unit.fromWei(balanceWei, 'ether');
-                let text='Balance for *'+serviceName+'-'+stage+'* on '+rpcUrl+' below threshold!'
-                let addrUrl='<https://'+network+'.etherscan.io/address/'+addr+'|'+addr+'>'
+                let text='Balance for *'+pack.name+'-'+stage+'* on '+rpcUrl+' below threshold!'
+                let addrUrl='<https://'+etherscanHost+'etherscan.io/address/'+addr+'|'+addr+'>'
 
                 let slackMsg={
                   username: 'Balance Checker',
@@ -45,7 +46,7 @@ class CheckBalancesHandler {
                       pretext: '<!here|here>: '+text,
                       "color": "danger",
                       "fields": [
-                        {"title": "Threshold (Wei)","value": threshold,"short": true},
+                        {"title": "Threshold (Wei)","value": threshold.toString(),"short": true},
                         {"title": "Threshold (Eth)","value": thresholdEth,"short": true},
                         {"title": "Balance (Wei)","value": balanceWei,"short": true},
                         {"title": "Balance (Eth)","value": balanceEth,"short": true}
