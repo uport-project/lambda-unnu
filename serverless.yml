@@ -45,3 +45,10 @@ functions:
      - http:
          path: lookup
          method: post
+  checkBalances:
+    handler: src/jobs_handler.checkBalances
+    description: uPort check for balances on all address used and report if low funds
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: true
