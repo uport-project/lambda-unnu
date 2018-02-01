@@ -45,3 +45,12 @@ functions:
      - http:
          path: lookup
          method: post
+  checkBalances:
+    handler: src/jobs_handler.checkBalances
+    description: uPort lookup identity (proxy address) for deviceKey"
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+          input:
+            stage: ${opt:stage, self:provider.stage}
