@@ -14,9 +14,8 @@ class CheckBalancesHandler {
         console.log(event)
         console.log(context)
 
-        const serviceName=pack.name
-
-        let stage=(event.stage)?event.stage:'master'
+        const sp=context.functionName.slice(pack.name.length+1).split('-')
+        let stage=sp[0]
         console.log('stage:' +stage)
 
         let addr=this.ethereumMgr.getAddress();
