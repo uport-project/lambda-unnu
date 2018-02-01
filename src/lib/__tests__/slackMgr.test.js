@@ -40,7 +40,7 @@ describe('SlackMgr', () => {
     describe('sendMessage()', ()=>{
 
         test('no slackMsg', (done) =>{
-            sut.sendMessage({})
+            sut.sendMessage()
             .then((resp)=> {
                 fail("shouldn't return"); done()
             })
