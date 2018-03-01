@@ -82,7 +82,12 @@ class CreateIdentityHandler {
       if(idCreationObj){
         const mess="deviceKey already used. On tx: "+idCreationObj.tx_hash
         console.log(mess)
-        cb({code: 400, message: mess})
+        let resp = {
+          managerType: idCreationObj.manager_type,
+          managerAddress: idCreationObj.manager_address,
+          txHash: idCreationObj.tx_hash
+        }
+        cb(null, resp)
         return;
       }
 
