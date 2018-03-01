@@ -172,8 +172,15 @@ describe('CreateIdentityHandler', () => {
     })
 
     test('handle deviceKey allready used', done => {
-        identityManagerMgrMock.getIdentityCreation.mockImplementation(()=>{ return {tx_hash: '0xtxHash'} })
+        identityManagerMgrMock.getIdentityCreation.mockImplementation(()=>{ 
+            return {
+                manager_address: '0xmanagerAddr', 
+                manager_type: 'IdentityManager', 
+                tx_hash: '0xtxHash'} 
+            })
+        authMgrMock.verifyNisaba.mockImplementation(()=>{ return {sub: deviceKey} })
         let event={
+            hello: 'hello',
             deviceKey: deviceKey,
             recoveryKey: recoveryKey,
             blockchain: 'blockchain',
@@ -182,9 +189,10 @@ describe('CreateIdentityHandler', () => {
         sut.handle(event,{},(err,res)=>{
             expect(identityManagerMgrMock.getIdentityCreation).toBeCalled();
             expect(identityManagerMgrMock.getIdentityCreation).toBeCalledWith(deviceKey);
-            expect(err).not.toBeNull();
-            expect(err.code).toEqual(400);
-            expect(err.message).toEqual('deviceKey already used. On tx: 0xtxHash')
+            expect(err).toBeNull();
+            expect(res.managerType).toEqual('IdentityManager')
+            expect(res.managerAddress).toEqual('0xmanagerAddr')
+            expect(res.txHash).toEqual('0xtxHash')
             done();
         })
     })
