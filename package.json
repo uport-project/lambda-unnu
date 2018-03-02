@@ -1,6 +1,6 @@
 {
   "name": "lambda-unnu",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "uPort creator of identities",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,10 @@
     {
       "name": "Cristobal Castillo",
       "email": "cristobal.castillo@consensys.net"
+    },
+    {
+      "name": "Aldi Gjoka",
+      "email": "aldi.gjoka@consensys.net"
     }
   ],
   "license": "MIT",
