@@ -90,9 +90,9 @@ class IdentityManagerMgr {
     }
 
     if (payload) {
-      ret.txHash=await idMgrs[blockchain].createIdentityWithCallAsync(deviceKey, recoveryKey, payload.destination, payload.data, txOptions)
+      ret.txHash=await idMgrs[blockchain].createIdentityWithCallAsync(deviceKey, recoveryKeyFix, payload.destination, payload.data, txOptions)
     } else {
-      ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKey, txOptions)
+      ret.txHash= await idMgrs[blockchain].createIdentityAsync(deviceKey, recoveryKeyFix, txOptions)
     }
 
     await this.storeIdentityCreation(deviceKey, ret.txHash, blockchain, managerType, ret.managerAddress)

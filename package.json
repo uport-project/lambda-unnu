@@ -1,6 +1,6 @@
 {
   "name": "lambda-unnu",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "uPort creator of identities",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,10 @@
     {
       "name": "Cristobal Castillo",
       "email": "cristobal.castillo@consensys.net"
+    },
+    {
+      "name": "Aldi Gjoka",
+      "email": "aldi.gjoka@consensys.net"
     }
   ],
   "license": "MIT",
@@ -39,7 +43,7 @@
     "ethjs-abi": "^0.2.1",
     "ethjs-provider-signer": "^0.1.4",
     "ethjs-unit": "^0.1.6",
-    "jwt-js": "^0.5.0",
+    "jsontokens": "^0.7.6",
     "pg": "^7.4.0",
     "serverless-kms-secrets": "^1.0.2",
     "serverless-webpack": "^4.2.0",
