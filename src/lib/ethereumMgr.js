@@ -127,6 +127,31 @@ class EthereumMgr {
     }
   }
 
+  async readNonce(address, networkName) {
+    if(!address) throw('no address')
+    if(!networkName) throw('no networkName')
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const client = new Client({
+        connectionString: this.pgUrl,
+    })
+
+    try{
+        await client.connect()
+        const res=await client.query(
+            "SELECT nonce \
+               FROM nonces \
+              WHERE nonces.address=$1 \
+                AND nonces.network=$2"
+            , [address, networkName]);
+        return res.rows[0].nonce;
+    } catch (e){
+        throw(e);
+    } finally {
+        await client.end()
+    }
+  }
+
   async getTransactionCount(address, networkName) {
     if(!address) throw('no address')
     if(!networkName) throw('no networkName')

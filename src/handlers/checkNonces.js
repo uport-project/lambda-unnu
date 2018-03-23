@@ -21,7 +21,7 @@ class CheckNoncesHandler {
 
         for (const network in networks) {
             let netNonce=await this.ethereumMgr.getTransactionCount(addr,network);
-            let dbNonce=await this.ethereumMgr.getNonce(addr,network);
+            let dbNonce=await this.ethereumMgr.readNonce(addr,network);
             let rpcUrl = networks[network].rpcUrl
 
             console.log('['+network+'] netNonce: '+netNonce+' dbNonce: '+dbNonce)
