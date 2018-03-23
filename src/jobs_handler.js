@@ -4,13 +4,16 @@ const AWS = require('aws-sdk');
 const EthereumMgr = require('./lib/ethereumMgr')
 const SlackMgr = require('./lib/slackMgr')
 const CheckBalancesHandler = require('./handlers/checkBalances')
+const CheckNoncesHandler = require('./handlers/checkNonces')
 
 let ethereumMgr = new EthereumMgr()
 let slackMgr = new SlackMgr()
 
 let checkBalances = new CheckBalancesHandler(ethereumMgr,slackMgr)
+let checkNonces = new CheckNoncesHandler(ethereumMgr,slackMgr)
 
 module.exports.checkBalances = (event, context, callback) => { preHandler(checkBalances,event,context,callback) }
+module.exports.checkNonces = (event, context, callback) => { preHandler(checkNonces,event,context,callback) }
 
 const preHandler = (handler,event,context,callback) =>{
   console.log(event)
