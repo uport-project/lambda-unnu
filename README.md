@@ -109,3 +109,22 @@ Look for a uPort identity created by a deviceKey.
 
 ![lookup seq diagram](./diagrams/img/lookup.seq.png)
 
+
+## Fixes
+To sync the database with the nonces on the blockchain just do:
+
+on develop
+```
+sls invoke local -f fixNonces
+```
+
+and on master
+```
+sls invoke local -f fixNonces --stage master
+```
+
+
+
+
+
+
