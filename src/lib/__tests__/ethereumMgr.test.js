@@ -1,229 +1,327 @@
-jest.mock('pg')
-import { Client } from 'pg'
-let pgClientMock={
-    connect:jest.fn(),
-    end:jest.fn()
-}
-Client.mockImplementation(()=>{return pgClientMock});
-const EthereumMgr = require('../ethereumMgr')
+jest.mock("pg");
+import { Client } from "pg";
+let pgClientMock = {
+  connect: jest.fn(),
+  end: jest.fn()
+};
+Client.mockImplementation(() => {
+  return pgClientMock;
+});
+const EthereumMgr = require("../ethereumMgr");
 
-describe('EthereumMgr', () => {
+describe("EthereumMgr", () => {
+  let sut;
+  let seed =
+    "kitten lemon sea enhance poem grid calm battle never summer night express";
+  let validMetaSignedTx =
+    "f902268080831e848094326ba40a7d9951acd7414fa9d992dde2cd2ff90680b90204c3f44c0a000000000000000000000000000000000000000000000000000000000000001c41ee9c8324a88483cc81f0a5607c6a7aedb3528c211e4d8a2d37dd81f0c632c56d24858219d23e31bd0af8f5c0336c42881fbeff838c10f8c1dac3e4f8aba9950000000000000000000000009fa2369eebe2bd266ef14785fad6c8bed710c69600000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000104701b8826000000000000000000000000d9a943e9569cb4fab09f66f6fa1adf965ad57973000000000000000000000000ed7e78c43c8c86b45d24995017bd60a9dd45aa01000000000000000000000000cdb1d9895d1c28bb73260bdd49f2650ee5bd335d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024f207564e000000000000000000000000000000000000000000000000000000000007611600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c8080";
+  let validSignedTx =
+    "f902660a63832dc6c094326ba40a7d9951acd7414fa9d992dde2cd2ff90680b90204c3f44c0a000000000000000000000000000000000000000000000000000000000000001c41ee9c8324a88483cc81f0a5607c6a7aedb3528c211e4d8a2d37dd81f0c632c56d24858219d23e31bd0af8f5c0336c42881fbeff838c10f8c1dac3e4f8aba9950000000000000000000000009fa2369eebe2bd266ef14785fad6c8bed710c69600000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000104701b8826000000000000000000000000d9a943e9569cb4fab09f66f6fa1adf965ad57973000000000000000000000000ed7e78c43c8c86b45d24995017bd60a9dd45aa01000000000000000000000000cdb1d9895d1c28bb73260bdd49f2650ee5bd335d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024f207564e000000000000000000000000000000000000000000000000000000000007611600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ba0aaaf27f6f21869b64ea2732030f1d96609a3d8be167951a0a8597f2c28c19d4ca04a5cbf3b3d5d4cf518b696027be3090d692836205a482e77483026e9f12521ff";
 
-    let sut;
-    let seed= 'kitten lemon sea enhance poem grid calm battle never summer night express'
-    let validMetaSignedTx = 'f902268080831e848094326ba40a7d9951acd7414fa9d992dde2cd2ff90680b90204c3f44c0a000000000000000000000000000000000000000000000000000000000000001c41ee9c8324a88483cc81f0a5607c6a7aedb3528c211e4d8a2d37dd81f0c632c56d24858219d23e31bd0af8f5c0336c42881fbeff838c10f8c1dac3e4f8aba9950000000000000000000000009fa2369eebe2bd266ef14785fad6c8bed710c69600000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000104701b8826000000000000000000000000d9a943e9569cb4fab09f66f6fa1adf965ad57973000000000000000000000000ed7e78c43c8c86b45d24995017bd60a9dd45aa01000000000000000000000000cdb1d9895d1c28bb73260bdd49f2650ee5bd335d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024f207564e000000000000000000000000000000000000000000000000000000000007611600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c8080'
-    let validSignedTx = 'f902660a63832dc6c094326ba40a7d9951acd7414fa9d992dde2cd2ff90680b90204c3f44c0a000000000000000000000000000000000000000000000000000000000000001c41ee9c8324a88483cc81f0a5607c6a7aedb3528c211e4d8a2d37dd81f0c632c56d24858219d23e31bd0af8f5c0336c42881fbeff838c10f8c1dac3e4f8aba9950000000000000000000000009fa2369eebe2bd266ef14785fad6c8bed710c69600000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000104701b8826000000000000000000000000d9a943e9569cb4fab09f66f6fa1adf965ad57973000000000000000000000000ed7e78c43c8c86b45d24995017bd60a9dd45aa01000000000000000000000000cdb1d9895d1c28bb73260bdd49f2650ee5bd335d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024f207564e000000000000000000000000000000000000000000000000000000000007611600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ba0aaaf27f6f21869b64ea2732030f1d96609a3d8be167951a0a8597f2c28c19d4ca04a5cbf3b3d5d4cf518b696027be3090d692836205a482e77483026e9f12521ff'
+  beforeAll(() => {
+    sut = new EthereumMgr();
+  });
 
-    beforeAll(() => {
-        sut = new EthereumMgr();
-    });
+  test("empty constructor", () => {
+    expect(sut).not.toBeUndefined();
+    expect(sut.pgUrl).toBeNull();
+    expect(sut.seed).toBeNull();
+    expect(sut.web3s).toEqual({});
+    expect(sut.gasPrices).toEqual({});
+  });
 
-    test('empty constructor', () => {
-        expect(sut).not.toBeUndefined();
-        expect(sut.pgUrl).toBeNull();
-        expect(sut.seed).toBeNull();
-        expect(sut.web3s).toEqual({});
-        expect(sut.gasPrices).toEqual({});
+  test("is isSecretsSet", () => {
+    let secretSet = sut.isSecretsSet();
+    expect(secretSet).toEqual(false);
+  });
 
-    });
+  test("getNonce() no pgUrl set", done => {
+    sut
+      .getNonce("a", "n")
+      .then(resp => {
+        fail("shouldn't return");
+        done();
+      })
+      .catch(err => {
+        expect(err).toEqual("no pgUrl set");
+        done();
+      });
+  });
 
-    test('is isSecretsSet', () => {
-        let secretSet=sut.isSecretsSet()
-        expect(secretSet).toEqual(false);
-    });
+  test("readNonce() no pgUrl set", done => {
+    sut
+      .readNonce("a", "n")
+      .then(resp => {
+        fail("shouldn't return");
+        done();
+      })
+      .catch(err => {
+        expect(err).toEqual("no pgUrl set");
+        done();
+      });
+  });
 
-    test('getNonce() no pgUrl set', (done) =>{
-        sut.getNonce('a','n')
-        .then((resp)=> {
-            fail("shouldn't return"); done()
+  test("setSecrets", () => {
+    expect(sut.isSecretsSet()).toEqual(false);
+    sut.setSecrets({ PG_URL: "fake", SEED: seed });
+    expect(sut.isSecretsSet()).toEqual(true);
+    expect(sut.pgUrl).not.toBeUndefined();
+    expect(sut.seed).not.toBeUndefined();
+    expect(sut.signer).not.toBeUndefined();
+  });
+
+  test("getProvider() no networkName", done => {
+    let p = sut.getProvider();
+    expect(p).toBeNull();
+    done();
+  });
+
+  test("getProvider() rinkeby", done => {
+    let p = sut.getProvider("rinkeby");
+    expect(p).not.toBeNull();
+    expect(p.provider.host).toEqual(
+      "https://rinkeby.infura.io/uport-lambda-unnu"
+    );
+    done();
+  });
+
+  test("getNetworkId() rinkeby", done => {
+    let nId = sut.getNetworkId("rinkeby");
+    expect(nId).not.toBeNull();
+    expect(nId).toEqual("4");
+    done();
+  });
+
+  describe("getBalance()", () => {
+    test("no address", done => {
+      sut
+        .getBalance(null, "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
         })
-        .catch( (err)=>{
-            expect(err).toEqual('no pgUrl set')
-            done()
+        .catch(err => {
+          expect(err).toEqual("no address");
+          done();
+        });
+    });
+
+    test("no networkName", done => {
+      sut
+        .getBalance("address", null)
+        .then(resp => {
+          fail("shouldn't return");
+          done();
         })
+        .catch(err => {
+          expect(err).toEqual("no networkName");
+          done();
+        });
     });
 
-    test('setSecrets', () => {
-        expect(sut.isSecretsSet()).toEqual(false);
-        sut.setSecrets({PG_URL: 'fake', SEED: seed})
-        expect(sut.isSecretsSet()).toEqual(true);
-        expect(sut.pgUrl).not.toBeUndefined()
-        expect(sut.seed).not.toBeUndefined()
-        expect(sut.signer).not.toBeUndefined()
+    test("no web3 for networkName", done => {
+      sut
+        .getBalance("address", "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no web3 for networkName");
+          done();
+        });
     });
 
-    test('getProvider() no networkName', (done) => {
-        let p=sut.getProvider()
-        expect(p).toBeNull();
+    test("happy path", done => {
+      sut.web3s["network"] = {
+        eth: {
+          getBalanceAsync: jest.fn()
+        }
+      };
+      sut.getBalance("address", "network").then(resp => {
+        expect(sut.web3s["network"].eth.getBalanceAsync).toBeCalledWith(
+          "address"
+        );
         done();
+      });
+    });
+  });
+
+  describe("getGasPrice()", () => {
+    test("no networkName", done => {
+      sut
+        .getGasPrice(null)
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no networkName");
+          done();
+        });
     });
 
-    test('getProvider() rinkeby', (done) =>{
-        let p=sut.getProvider('rinkeby')
-        expect(p).not.toBeNull();
-        expect(p.provider.host).toEqual("https://rinkeby.infura.io/uport-lambda-unnu")
+    test("no web3 for networkName", done => {
+      sut.gasPrices["network"] = 99;
+      sut.getGasPrice("network").then(resp => {
+        expect(resp).toEqual(99);
         done();
-    })
+      });
+    });
 
-    test('getNetworkId() rinkeby', (done) =>{
-        let nId=sut.getNetworkId('rinkeby')
-        expect(nId).not.toBeNull();
-        expect(nId).toEqual("4")
+    test("happy path", done => {
+      sut.web3s["network"] = {
+        eth: {
+          getGasPriceAsync: jest.fn()
+        }
+      };
+      sut.getGasPrice("network").then(resp => {
+        expect(sut.web3s["network"].eth.getGasPriceAsync).toBeCalled();
         done();
-    })
+      });
+    });
+  });
 
-    describe('getBalance()', () => {
-
-        test('no address', (done) =>{
-            sut.getBalance(null,'network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no address')
-                done()
-            })
+  describe("getNonce()", () => {
+    test("no address", done => {
+      sut
+        .getNonce(null, "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no address");
+          done();
         });
+    });
 
-        test('no networkName', (done) =>{
-            sut.getBalance('address',null)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no networkName')
-                done()
-            })
+    test("no networkName", done => {
+      sut
+        .getNonce("address", null)
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no networkName");
+          done();
         });
+    });
 
-        test('no web3 for networkName', (done) =>{
-            sut.getBalance('address','network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no web3 for networkName')
-                done()
-            })
+    test("throw exception", done => {
+      pgClientMock.connect.mockImplementation(() => {
+        throw "throwed error";
+      });
+      sut
+        .getNonce("address", "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("throwed error");
+          done();
         });
+    });
 
-        test('happy path', (done) =>{
-            sut.web3s['network']={
-                eth:{
-                    getBalanceAsync: jest.fn()
-                }
+    test("happy path", done => {
+      pgClientMock.connect = jest.fn();
+      pgClientMock.connect.mockClear();
+      pgClientMock.end.mockClear();
+      pgClientMock.query = jest.fn(() => {
+        return Promise.resolve({
+          rows: [
+            {
+              nonce: 10
             }
-            sut.getBalance('address','network')
-            .then((resp)=> {
-                expect(sut.web3s['network'].eth.getBalanceAsync).toBeCalledWith('address')
-                done()
-            })
+          ]
         });
-    } )
-
-
-    describe('getGasPrice()', () => {
-        test('no networkName', (done) =>{
-            sut.getGasPrice(null)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no networkName')
-                done()
-            })
-        });
-
-        test('no web3 for networkName', (done) =>{
-            sut.gasPrices['network']=99
-            sut.getGasPrice('network')
-            .then((resp)=> {
-                expect(resp).toEqual(99)
-                done()
-            })
-        });
-
-        test('happy path', (done) =>{
-            sut.web3s['network']={
-                eth:{
-                    getGasPriceAsync: jest.fn()
-                }
-            }
-            sut.getGasPrice('network')
-            .then((resp)=> {
-                expect(sut.web3s['network'].eth.getGasPriceAsync).toBeCalled()
-                done()
-            })
-        });
-    })
-
-
-    describe('getNonce()', () =>{
-        test('no address', (done) =>{
-            sut.getNonce(null,'network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no address')
-                done()
-            })
-        });
-
-        test('no networkName', (done) =>{
-            sut.getNonce('address',null)
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('no networkName')
-                done()
-            })
-        });
-
-        test('throw exception', (done) =>{
-            pgClientMock.connect.mockImplementation(()=>{
-                throw("throwed error")
-            });
-            sut.getNonce('address','network')
-            .then((resp)=> {
-                fail("shouldn't return"); done()
-            })
-            .catch( (err)=>{
-                expect(err).toEqual('throwed error')
-                done()
-            })
-        });
-
-        test('happy path', (done) =>{
-            pgClientMock.connect=jest.fn()
-            pgClientMock.connect.mockClear()
-            pgClientMock.end.mockClear()
-            pgClientMock.query=jest.fn(()=>{
-                return Promise.resolve({
-                    rows:[{
-                        nonce: 10
-                    }]
-                })})
-            sut.getNonce('address','network')
-            .then((resp)=> {
-
-                expect(pgClientMock.connect).toBeCalled()
-                expect(pgClientMock.query).toBeCalled()
-                expect(pgClientMock.query).toBeCalledWith(
-            "INSERT INTO nonces(address,network,nonce) \
+      });
+      sut.getNonce("address", "network").then(resp => {
+        expect(pgClientMock.connect).toBeCalled();
+        expect(pgClientMock.query).toBeCalled();
+        expect(pgClientMock.query).toBeCalledWith(
+          "INSERT INTO nonces(address,network,nonce) \
              VALUES ($1,$2,0) \
         ON CONFLICT (address,network) DO UPDATE \
               SET nonce = nonces.nonce + 1 \
             WHERE nonces.address=$1 \
               AND nonces.network=$2 \
-        RETURNING nonce;"
-               ,[ 'address', 'network']);
-                expect(pgClientMock.end).toBeCalled()
-                expect(resp).toEqual(10)
-                done()
-            })
-        });
-    })
+        RETURNING nonce;",
+          ["address", "network"]
+        );
+        expect(pgClientMock.end).toBeCalled();
+        expect(resp).toEqual(10);
+        done();
+      });
+    });
+  });
 
-})
+  describe("readNonce()", () => {
+    test("no address", done => {
+      sut
+        .readNonce(null, "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no address");
+          done();
+        });
+    });
+
+    test("no networkName", done => {
+      sut
+        .readNonce("address", null)
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("no networkName");
+          done();
+        });
+    });
+
+    test("throw exception", done => {
+      pgClientMock.connect.mockImplementation(() => {
+        throw "throwed error";
+      });
+      sut
+        .readNonce("address", "network")
+        .then(resp => {
+          fail("shouldn't return");
+          done();
+        })
+        .catch(err => {
+          expect(err).toEqual("throwed error");
+          done();
+        });
+    });
+
+    test("happy path", done => {
+      pgClientMock.connect = jest.fn();
+      pgClientMock.connect.mockClear();
+      pgClientMock.end.mockClear();
+      pgClientMock.query = jest.fn(() => {
+        return Promise.resolve({ rows: [{ nonce: 10 }] });
+      });
+      sut.readNonce("address", "network").then(resp => {
+        expect(pgClientMock.connect).toBeCalled();
+        expect(pgClientMock.query).toBeCalled();
+        expect(pgClientMock.query).toBeCalledWith(
+          "SELECT nonce \
+               FROM nonces \
+              WHERE nonces.address=$1 \
+                AND nonces.network=$2",
+          ["address", "network"]
+        );
+        expect(pgClientMock.end).toBeCalled();
+        expect(resp).toEqual(10);
+        done();
+      });
+    });
+  });
+});
