@@ -127,6 +127,13 @@ class EthereumMgr {
     }
   }
 
+  async getTransactionCount(address, networkName) {
+    if(!address) throw('no address')
+    if(!networkName) throw('no networkName')
+    if(!this.web3s[networkName]) throw('no web3 for networkName')
+    return await this.web3s[networkName].eth.getTransactionCountAsync(address)
+  }
+
 
 
 
