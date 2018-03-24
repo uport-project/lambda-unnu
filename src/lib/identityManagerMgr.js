@@ -84,6 +84,8 @@ class IdentityManagerMgr {
       nonce: await this.ethereumMgr.getNonce(from,blockchain)
     }
 
+    console.log('Gas Price used')
+    console.log(txOptions.gasPrice)
     //Return object
     let ret={
       managerAddress: idMgrs[blockchain].address
