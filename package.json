@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/uport-project/lambda-unnu#readme",
   "devDependencies": {
+    "ajv": "^6.3.0",
     "aws-sdk": "^2.213.1",
     "aws-sdk-mock": "^1.7.0",
     "babel-loader": "^7.1.2",
