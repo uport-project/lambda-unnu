@@ -89,10 +89,13 @@ class EthereumMgr {
   async getGasPrice(networkName) {
     if (!networkName) throw "no networkName";
     try {
-      this.gasPrices[networkName] = (await this.web3s[
-        networkName
-      ].eth.getGasPriceAsync()).toNumber();
+      const networkGasPrice = (await this.web3s[networkName].eth.getGasPriceAsync()).toNumber();
+      if(networkGasPrice > DEFAULT_GAS_PRICE)
+        this.gasPrices[networkName] = networkGasPrice;
+      else
+        this.gasPrices[networkName] = DEFAULT_GAS_PRICE;
     } catch (e) {
+      console.log("getGasPrice ERROR:")
       console.log(e);
     }
     return this.gasPrices[networkName];
