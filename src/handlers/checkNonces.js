@@ -27,7 +27,7 @@ class CheckNoncesHandler {
         "[" + network + "] netNonce: " + netNonce + " dbNonce: " + dbNonce
       );
 
-      if (dbNonce >= netNonce) {
+      if (dbNonce >= netNonce && netNonce > 0) {
         console.log("HEY!!!");
         let etherscanHost = network === "mainnet" ? "" : network + ".";
         let text =
