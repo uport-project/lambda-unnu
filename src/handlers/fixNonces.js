@@ -27,7 +27,7 @@ class FixNoncesHandler {
       );
       if (netNonce == 0) {
         await this.ethereumMgr.setNonce(addr, network, parseInt(0));
-      } else if (dbNonce != netNonce - 1) {
+      } else if (dbNonce >= netNonce) {
         console.log("HEY!!!");
         await this.ethereumMgr.setNonce(addr, network, parseInt(netNonce - 1));
         console.log("Fixed with: " + parseInt(netNonce - 1));
