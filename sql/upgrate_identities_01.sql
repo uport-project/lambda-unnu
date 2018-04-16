@@ -1,7 +1,13 @@
--- Table: public.identities
+-- Create temporary table with all data;
+SELECT *
+  INTO temp_table
+  FROM public.identities;
 
--- DROP TABLE public.identities;
+-- delete old table;
 
+DROP TABLE public.identities;
+
+-- Create new table;
 CREATE TABLE public.identities
 (
     tx_hash VARCHAR(128) NOT NULL, --Tx Hash of the identity creation
@@ -21,3 +27,30 @@ WITH (
 );
 ALTER TABLE public.identities
   OWNER TO root;
+
+
+-- Fill new table with data;
+
+INSERT INTO public.identities(
+    tx_hash,
+    device_key,
+    network,
+    manager_type,
+    manager_address,
+    identity,
+    created
+)
+SELECT tx_hash,
+    device_key,
+    network,
+    manager_type,
+    manager_address,
+    identity,
+    created
+  FROM temp_table;
+
+
+
+-- drop temp table;
+
+DROP TABLE temp_table;
