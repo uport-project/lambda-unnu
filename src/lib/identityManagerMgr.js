@@ -85,7 +85,7 @@ class IdentityManagerMgr {
     let from = this.ethereumMgr.getAddress(); //TODO: read from provider
     let txOptions = {
       from: from,
-      gas: 3000000,
+      gas: 400000,
       gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
       nonce: await this.ethereumMgr.getNonce(from, blockchain)
     };
