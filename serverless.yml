@@ -45,6 +45,13 @@ functions:
      - http:
          path: lookup
          method: post
+  checkPending:
+    handler: src/api_handler.checkPending
+    description: uPort check if pending tx are mined"
+    events:
+     - http:
+         path: lookup
+         method: post
   checkBalances:
     handler: src/jobs_handler.checkBalances
     description: uPort check for balances on all address used and report if low funds
