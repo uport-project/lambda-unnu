@@ -85,7 +85,7 @@ class IdentityManagerMgr {
     let from = this.ethereumMgr.getAddress(); //TODO: read from provider
     let txOptions = {
       from: from,
-      gas: 3000000,
+      gas: 400000,
       gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
       nonce: await this.ethereumMgr.getNonce(from, blockchain)
     };
@@ -118,7 +118,8 @@ class IdentityManagerMgr {
       ret.txHash,
       blockchain,
       managerType,
-      ret.managerAddress
+      ret.managerAddress,
+      txOptions
     );
     return ret;
   }
@@ -128,13 +129,15 @@ class IdentityManagerMgr {
     txHash,
     networkName,
     managerType,
-    managerAddress
+    managerAddress,
+    txOptions
   ) {
     if (!deviceKey) throw "no deviceKey";
     if (!txHash) throw "no txHash";
     if (!networkName) throw "no networkName";
     if (!managerType) throw "no managerType";
     if (!managerAddress) throw "no managerAddress";
+    if (!txOptions) throw "no txOptions";
     if (!this.pgUrl) throw "no pgUrl set";
 
     const client = new Client({
@@ -144,9 +147,9 @@ class IdentityManagerMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "INSERT INTO identities(device_key,tx_hash, network,manager_type,manager_address) \
-             VALUES ($1,$2,$3,$4,$5) ",
-        [deviceKey, txHash, networkName, managerType, managerAddress]
+        "INSERT INTO identities(device_key,tx_hash, network,manager_type,manager_address,tx_options) \
+             VALUES ($1,$2,$3,$4,$5,$6) ",
+        [deviceKey, txHash, networkName, managerType, managerAddress, txOptions]
       );
     } catch (e) {
       throw e;
@@ -203,9 +206,11 @@ class IdentityManagerMgr {
       await client.connect();
       const res = await client.query(
         "UPDATE identities \
-                SET identity = $2 \
+                SET identity = $2, \
+                    tx_receipt = $3, \
+                    updated = now() \
               WHERE tx_hash = $1",
-        [txHash, identity]
+        [txHash, identity, txReceipt]
       );
     } catch (e) {
       throw e;
