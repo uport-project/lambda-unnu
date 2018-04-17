@@ -235,5 +235,33 @@ class IdentityManagerMgr {
   async getTxData(txHash, blockchain) {
     await this.ethereumMgr.getTransaction(txHash, blockchain);
   }
+
+  async getPendingTx(blockchain,age){
+    if (!blockchain) throw "no blockchain";
+    if (!age) throw "no age";
+    if (!this.pgUrl) throw "no pgUrl set";
+
+    const client = new Client({
+      connectionString: this.pgUrl
+    });
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "SELECT tx_hash \
+           FROM identities \
+          WHERE tx_receipt is NULL \
+            AND network = $1 \
+            AND created > now() - CAST ($2 AS INTERVAL)",
+        [blockchain, age+' seconds']
+      );
+      return res;
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
+  
 }
 module.exports = IdentityManagerMgr;
