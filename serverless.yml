@@ -50,7 +50,7 @@ functions:
     description: uPort check if pending tx are mined"
     events:
      - http:
-         path: lookup
+         path: checkPending
          method: post
   checkBalances:
     handler: src/jobs_handler.checkBalances
