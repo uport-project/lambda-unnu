@@ -450,4 +450,69 @@ describe('IdentityManagerMgr', () => {
         })
     });
 
+    describe("getPendingTx", () => {
+
+        test('no blockchain', (done) => {
+            sut.getPendingTx(null, null)
+            .then((resp)=> {
+                fail("shouldn't return"); done()
+            })
+            .catch( (err)=>{
+                expect(err).toEqual('no blockchain')
+                done()
+            })
+        })
+
+        test('no age', (done) => {
+            sut.getPendingTx(networkName, null)
+            .then((resp)=> {
+                fail("shouldn't return"); done()
+            })
+            .catch( (err)=>{
+                expect(err).toEqual('no age')
+                done()
+            })
+        })
+
+
+        test('no pgUrl', (done) => {
+            if (sut.isSecretsSet()){
+                sut.setSecrets({PG_URL: null})
+            }
+            sut.getPendingTx(networkName,60)
+            .then((resp)=> {
+                fail("shouldn't return"); done()
+            })
+            .catch( (err)=>{
+                expect(err).toEqual('no pgUrl set')
+                done()
+            })
+        })
+
+        test('happy path', (done) => {
+            sut.setSecrets({PG_URL: 'fake'})
+            pgClientMock.connect=jest.fn()
+            pgClientMock.connect.mockClear()
+            pgClientMock.end.mockClear()
+            pgClientMock.query=jest.fn(()=>{ return Promise.resolve( {rows:["ok"]} )})
+            sut.getPendingTx(networkName,60)
+            .then((resp)=> {
+                expect(pgClientMock.connect).toBeCalled()
+                expect(pgClientMock.query).toBeCalled()
+                /*
+                expect(pgClientMock.query).toBeCalledWith(
+                    "SELECT tx_hash \
+                     FROM identities \
+                    WHERE tx_receipt is NULL \
+                      AND network = $1 \
+                      AND created > now() - CAST ($2 AS INTERVAL)",
+                [networkName, '60 seconds']);
+                */
+                expect(pgClientMock.end).toBeCalled()
+                expect(resp).toEqual({rows:["ok"]});
+                done()
+            })
+        })
+
+    });
 })

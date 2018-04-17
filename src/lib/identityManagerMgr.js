@@ -238,6 +238,7 @@ class IdentityManagerMgr {
 
   async getPendingTx(blockchain,age){
     if (!blockchain) throw "no blockchain";
+    if (!age) throw "no age";
     if (!this.pgUrl) throw "no pgUrl set";
 
     const client = new Client({
