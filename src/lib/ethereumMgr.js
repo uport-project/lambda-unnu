@@ -113,12 +113,12 @@ class EthereumMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "INSERT INTO nonces(address,network,nonce) \
+        "INSERT INTO accounts(address,network,nonce) \
              VALUES ($1,$2,0) \
         ON CONFLICT (address,network) DO UPDATE \
-              SET nonce = nonces.nonce + 1 \
-            WHERE nonces.address=$1 \
-              AND nonces.network=$2 \
+              SET nonce = accounts.nonce + 1 \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2 \
         RETURNING nonce;",
         [address, networkName]
       );
@@ -143,9 +143,9 @@ class EthereumMgr {
       await client.connect();
       const res = await client.query(
         "SELECT nonce \
-               FROM nonces \
-              WHERE nonces.address=$1 \
-                AND nonces.network=$2",
+               FROM accounts \
+              WHERE accounts.address=$1 \
+                AND accounts.network=$2",
         [address, networkName]
       );
       return res.rows[0].nonce;
@@ -168,10 +168,10 @@ class EthereumMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "UPDATE nonces \
+            "UPDATE accounts \
                 SET nonce=$3 \
-              WHERE nonces.address=$1 \
-                AND nonces.network=$2"
+              WHERE accounts.address=$1 \
+                AND accounts.network=$2"
             , [address, networkName,nonce]);
         return res;
     } catch (e){
