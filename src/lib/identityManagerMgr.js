@@ -82,11 +82,22 @@ class IdentityManagerMgr {
     }
 
     await this.initIdentityManager(managerType, blockchain);
-    let from = this.ethereumMgr.getAddress(); //TODO: read from provider
+
+    //Get an available address/worker
+    const gasPrice =  await this.ethereumMgr.getGasPrice(blockchain);
+    const gas = 400000;
+    const minBalance= gas * gasPrice * 1.1;
+    let from = await this.ethereumMgr.getAvailableAddress(blockchain,minBalance);
+    
+    if(from == null){
+      throw "no available addreess";
+      //TODO: queue the transaction until an available address.
+    }
+
     let txOptions = {
       from: from,
-      gas: 400000,
-      gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
+      gas: gas,
+      gasPrice: gasPrice,
       nonce: await this.ethereumMgr.getNonce(from, blockchain)
     };
 

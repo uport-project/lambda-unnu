@@ -18,8 +18,8 @@ class CheckBalancesHandler {
         let stage=sp[0]
         console.log('stage:' +stage)
 
-        let addr=this.ethereumMgr.getAddress();
-        console.log('checking addr:'+addr)
+        let addr=this.ethereumMgr.getAccount(0); //Root account only
+        console.log('checking root addr:'+addr)
 
         for (const network in networks) {
             let balanceWei=await this.ethereumMgr.getBalance(addr,network);
@@ -28,7 +28,7 @@ class CheckBalancesHandler {
 
             console.log('['+network+'] balance: '+balanceWei+' threshold: '+threshold)
 
-            if(balanceWei < threshold){
+            if(1==0 && balanceWei < threshold){
                 console.log("HEY!!!")
                 let etherscanHost=(network==='mainnet')?'':network+'.';
 

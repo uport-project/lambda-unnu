@@ -28,36 +28,46 @@ class EthereumMgr {
     this.seed = secrets.SEED;
 
     const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
-    this.signer = new HDSigner(hdPrivKey);
+    
+    //Create 10 addresses + signers
+    let signers={};
+    this.addresses=[];
+    for (let i = 0; i < 10; i++) { 
+      const signer = new HDSigner(hdPrivKey,i);
+      const addr = signer.getAddress();
+      signers[addr]=signer;
+      this.addresses[i]=addr;
+    }
 
     const txSigner = {
       signTransaction: (tx_params, cb) => {
         let tx = new Transaction(tx_params);
         let rawTx = tx.serialize().toString("hex");
-        this.signer.signRawTx(rawTx, (err, signedRawTx) => {
+        signers[tx.from].signRawTx(rawTx, (err, signedRawTx) => {
           cb(err, "0x" + signedRawTx);
         });
       },
-      accounts: cb => cb(null, [this.signer.getAddress()])
+      accounts: cb => cb(null, this.addresses)
     };
 
+    //Web3s for all networks
     for (const network in networks) {
       let provider = new SignerProvider(networks[network].rpcUrl, txSigner);
       let web3 = new Web3(provider);
       web3.eth = Promise.promisifyAll(web3.eth);
-      this.web3s[network] = web3;
+      this.web3s[network]=web3
 
       this.gasPrices[network] = DEFAULT_GAS_PRICE;
     }
   }
 
+  getAccount(index){
+    return this.addresses[index];
+  }
+  
   getProvider(networkName) {
     if (!this.web3s[networkName]) return null;
     return this.web3s[networkName].currentProvider;
-  }
-
-  getAddress() {
-    return this.signer.getAddress();
   }
 
   getNetworkId(networkName) {
@@ -101,6 +111,13 @@ class EthereumMgr {
     return this.gasPrices[networkName];
   }
 
+  async getTransactionCount(address, networkName) {
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    if (!this.web3s[networkName]) throw "no web3 for networkName";
+    return await this.web3s[networkName].eth.getTransactionCountAsync(address);
+  }
+
   async getNonce(address, networkName) {
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
@@ -131,8 +148,16 @@ class EthereumMgr {
   }
 
   async readNonce(address, networkName) {
+    return await this.readAddressParameter(address, networkName, 'nonce');
+  }
+  async readBalance(address, networkName) {
+    return await this.readAddressParameter(address, networkName, 'balance');
+  }
+
+  async readAddressParameter(address, networkName, param) {
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
+    if (!param) throw "no param";
     if (!this.pgUrl) throw "no pgUrl set";
 
     const client = new Client({
@@ -142,13 +167,13 @@ class EthereumMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "SELECT nonce \
+        "SELECT "+param+" \
                FROM accounts \
               WHERE accounts.address=$1 \
                 AND accounts.network=$2",
         [address, networkName]
       );
-      return res.rows[0].nonce;
+      return res.rows[0][param];
     } catch (e) {
       throw e;
     } finally {
@@ -157,8 +182,20 @@ class EthereumMgr {
   }
 
   async setNonce(address, networkName, nonce) {
+    if(!nonce) throw('no nonce')
+    return await setAddressParameter(address, networkName, 'nonce', nonce)
+  }
+
+  async setBalance(address, networkName, balance) {
+    if(!balance) throw('no balance')
+    return await setAddressParameter(address, networkName, 'balance', balance)
+  }
+  
+  async setAddressParameter(address, networkName, param, value) {
     if(!address) throw('no address')
     if(!networkName) throw('no networkName')
+    if(!param) throw('no param')
+    if(!value) throw('no value')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -169,10 +206,10 @@ class EthereumMgr {
         await client.connect()
         const res=await client.query(
             "UPDATE accounts \
-                SET nonce=$3 \
+                SET "+param+"=$3 \
               WHERE accounts.address=$1 \
                 AND accounts.network=$2"
-            , [address, networkName,nonce]);
+            , [address, networkName,value]);
         return res;
     } catch (e){
         throw(e);
@@ -181,12 +218,40 @@ class EthereumMgr {
     }
   }
 
-  async getTransactionCount(address, networkName) {
-    if (!address) throw "no address";
-    if (!networkName) throw "no networkName";
-    if (!this.web3s[networkName]) throw "no web3 for networkName";
-    return await this.web3s[networkName].eth.getTransactionCountAsync(address);
+
+  
+  //Check for available address. No pending tx and enough balance
+  async getAvailableAddress(networkName,minBalance) {
+    if(!networkName) throw('no networkName')
+    if(!minBalance) throw('no minBalance')
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const client = new Client({
+      connectionString: this.pgUrl,
+    })
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "SELECT address \
+               FROM accounts \
+              WHERE accounts.network=$1 \
+                AND accounts.balance > $2 \
+                AND accounts.pending_tx IS NULL",
+        [networkName,minBalance]
+      );
+      if(res.rows.length==0){
+        return null;
+      }else{
+        return res.rows[0].address;
+      }
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
   }
+
 }
 
 module.exports = EthereumMgr;
