@@ -27,23 +27,17 @@ class EthereumMgr {
     this.pgUrl = secrets.PG_URL;
     this.seed = secrets.SEED;
 
-    const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
     
-    //Create 10 addresses + signers
-    let signers={};
+    //Init root account
+    this.signers={};
     this.addresses=[];
-    for (let i = 0; i < 10; i++) { 
-      const signer = new HDSigner(hdPrivKey,i);
-      const addr = signer.getAddress();
-      signers[addr]=signer;
-      this.addresses[i]=addr;
-    }
+    this.initAccount(0);
 
     const txSigner = {
       signTransaction: (tx_params, cb) => {
         let tx = new Transaction(tx_params);
         let rawTx = tx.serialize().toString("hex");
-        signers[tx.from].signRawTx(rawTx, (err, signedRawTx) => {
+        this.signers[tx.from].signRawTx(rawTx, (err, signedRawTx) => {
           cb(err, "0x" + signedRawTx);
         });
       },
@@ -61,10 +55,20 @@ class EthereumMgr {
     }
   }
 
+  initAccount(index){
+    const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
+    const signer = new HDSigner(hdPrivKey,index);
+    const addr = signer.getAddress();
+    this.signers[addr]=signer;
+    this.addresses[index]=addr;
+    return addr;
+  }
+
   getAccount(index){
+    if(index >= this.addresses.length) throw "index overflow";
     return this.addresses[index];
   }
-  
+
   getProvider(networkName) {
     if (!this.web3s[networkName]) return null;
     return this.web3s[networkName].currentProvider;
@@ -182,20 +186,20 @@ class EthereumMgr {
   }
 
   async setNonce(address, networkName, nonce) {
-    if(!nonce) throw('no nonce')
-    return await setAddressParameter(address, networkName, 'nonce', nonce)
+    if(nonce == undefined) throw('no nonce')
+    return await this.setAddressParameter(address, networkName, 'nonce', nonce)
   }
 
   async setBalance(address, networkName, balance) {
-    if(!balance) throw('no balance')
-    return await setAddressParameter(address, networkName, 'balance', balance)
+    if(balance == undefined) throw('no balance')
+    return await this.setAddressParameter(address, networkName, 'balance', balance)
   }
   
   async setAddressParameter(address, networkName, param, value) {
     if(!address) throw('no address')
     if(!networkName) throw('no networkName')
     if(!param) throw('no param')
-    if(!value) throw('no value')
+    if(value == undefined) throw('no value')
     if(!this.pgUrl) throw('no pgUrl set')
 
     const client = new Client({
@@ -205,10 +209,12 @@ class EthereumMgr {
     try{
         await client.connect()
         const res=await client.query(
-            "UPDATE accounts \
-                SET "+param+"=$3 \
-              WHERE accounts.address=$1 \
-                AND accounts.network=$2"
+          "INSERT INTO accounts(address,network,"+param+") \
+          VALUES ($1,$2,$3) \
+     ON CONFLICT (address,network) DO UPDATE \
+           SET "+param+" = $3 \
+         WHERE accounts.address=$1 \
+           AND accounts.network=$2"
             , [address, networkName,value]);
         return res;
     } catch (e){
@@ -219,9 +225,48 @@ class EthereumMgr {
   }
 
 
+  async getAccountsCount(){
+    if(!this.pgUrl) throw('no pgUrl set')
+
+    const client = new Client({
+      connectionString: this.pgUrl,
+    })
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "SELECT COUNT(*) as c \
+               FROM (SELECT DISTINCT address FROM accounts) t"
+      );
+      return Number(res.rows[0].c);
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
+
   
   //Check for available address. No pending tx and enough balance
   async getAvailableAddress(networkName,minBalance) {
+    if(!networkName) throw('no networkName')
+    if(!minBalance) throw('no minBalance')
+
+    const unavailableAddrs = this.getUnavailableAddress(networkName);
+    
+    for (i=1; i<this.addresses.length; i++){
+      const addr = this.addresses[i];
+      if( ! unavailableAddrs.indexOf(addr) ){
+        return addr;
+      }
+    }
+
+    //All busy.
+    return null;
+
+  }
+
+  async getUnavailableAddress(networkName,minBalance){
     if(!networkName) throw('no networkName')
     if(!minBalance) throw('no minBalance')
     if(!this.pgUrl) throw('no pgUrl set')
@@ -236,15 +281,14 @@ class EthereumMgr {
         "SELECT address \
                FROM accounts \
               WHERE accounts.network=$1 \
-                AND accounts.balance > $2 \
-                AND accounts.pending_tx IS NULL",
+                AND ( accounts.pending_tx IS NOT NULL \
+                      OR \
+                      accounts.balance < $2 )",
         [networkName,minBalance]
       );
-      if(res.rows.length==0){
-        return null;
-      }else{
-        return res.rows[0].address;
-      }
+      let addresses=[];
+      rows.forEach((row)=>{ addresses.push(row.address) })
+      return addresses;
     } catch (e) {
       throw e;
     } finally {

@@ -69,3 +69,6 @@ functions:
   fixNonces:
     handler: src/script_handler.fixNonces
     description: uPort fix for blockchain nonces against database stored nonce
+  createWorker:
+    handler: src/script_handler.createWorker
+    description: uPort create Worker

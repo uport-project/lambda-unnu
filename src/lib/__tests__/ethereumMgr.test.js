@@ -67,7 +67,9 @@ describe("EthereumMgr", () => {
     expect(sut.isSecretsSet()).toEqual(true);
     expect(sut.pgUrl).not.toBeUndefined();
     expect(sut.seed).not.toBeUndefined();
-    expect(sut.signer).not.toBeUndefined();
+    expect(sut.signers).not.toBeUndefined();
+    expect(sut.addresses).not.toBeUndefined();
+    expect(sut.addresses.length).toEqual(1);
   });
 
   test("getProvider() no networkName", done => {
