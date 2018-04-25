@@ -14,7 +14,6 @@ provider:
       Action:
       - s3:*
       Resource: 'arn:aws:s3:::*'
-      
   environment:
       SECRETS: ${self:custom.kmsSecrets.secrets.SECRETS}
 
@@ -34,6 +33,7 @@ functions:
   createIdentity:
     handler: src/api_handler.createIdentity
     description: uPort Create Identity with "identityManager.createIdentity()"
+    timeout: 30
     events:
      - http:
          path: createIdentity
