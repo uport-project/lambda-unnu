@@ -43,7 +43,7 @@ class EthereumMgr {
       signTransaction: (tx_params, cb) => {
         let tx = new Transaction(tx_params);
         let rawTx = tx.serialize().toString("hex");
-        this.signers[tx.from].signRawTx(rawTx, (err, signedRawTx) => {
+        this.signers[tx_params.from].signRawTx(rawTx, (err, signedRawTx) => {
           cb(err, "0x" + signedRawTx);
         });
       },
@@ -68,11 +68,6 @@ class EthereumMgr {
     this.signers[addr]=signer;
     this.addresses[index]=addr;
     return addr;
-  }
-
-  getAccount(index){
-    if(index >= this.addresses.length) throw "index overflow";
-    return this.addresses[index];
   }
 
   getProvider(networkName) {
@@ -131,20 +126,41 @@ class EthereumMgr {
   async getNonce(address, networkName){
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
-    const txCount = await this.getTransactionCount(address, networkName);
-    return parseInt(txCount - 1)
+    return await this.getTransactionCount(address, networkName);
   }
 
   async getAvailableAddress(networkName,minBalance){
     if (!networkName) throw "no networkName";
     if (!minBalance) minBalance=0;
+    
+    console.log("getAvailableAddress: minBalance: "+minBalance)
+      
+    for(let i=1;i<this.addresses.length;i++){
+      const addr=this.addresses[i];
+      console.log("getAvailableAddress: checking addr "+addr)
 
-    const addr=this.getAccount(1);
+      //Call lockAccount and getBalance in parallel. Wait for both to complete
+      let promisesRes = await Promise.all([
+        this.lockAccount(addr,networkName),
+        this.getBalance(addr,networkName)
+      ]);
 
-    let canLock=await this.lockAccount(addr,networkName);
+      let canLock=promisesRes[0];
+      if(canLock){
+        console.log("getAvailableAddress:    addr "+addr+" LOCKED !")
+        const bal=promisesRes[1]; 
+        console.log("getAvailableAddress:     bal "+addr+": "+bal)
+        if(bal>=minBalance){
+          return addr;
+        }else{
+          console.log("getAvailableAddress:    addr "+addr+" unlocking (not enough balance)")
+          await this.updateAccount(addr,networkName,null)
+        }
+      }
+    }
+    //No address available :(
+    return null;
 
-    if(canLock) return addr;
-    else return null;
   }
 
   async lockAccount(address, networkName) {
@@ -180,7 +196,6 @@ class EthereumMgr {
   async updateAccount(address,networkName,status){
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
-    if (!status) throw "no status";
     if (!this.pgUrl) throw "no pgUrl set";
 
     const client = new Client({
@@ -190,9 +205,7 @@ class EthereumMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "INSERT INTO accounts(address,network,status) \
-             VALUES ($1,$2,$3) \
-        ON CONFLICT (address,network) DO UPDATE \
+        "UPDATE accounts\
               SET status = $3 \
             WHERE accounts.address=$1 \
               AND accounts.network=$2 \

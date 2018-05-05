@@ -101,8 +101,8 @@ class IdentityManagerMgr {
       nonce: await this.ethereumMgr.getNonce(from, blockchain)
     };
 
-    console.log("Gas Price used");
-    console.log(txOptions.gasPrice);
+    console.log("Tx Options");
+    console.log(txOptions);
     //Return object
     let ret = {
       managerAddress: idMgrs[blockchain].address
@@ -124,14 +124,18 @@ class IdentityManagerMgr {
       );
     }
 
-    await this.storeIdentityCreation(
-      deviceKey,
-      ret.txHash,
-      blockchain,
-      managerType,
-      ret.managerAddress,
-      txOptions
-    );
+    //Call updateAccount and storeIdentityCreation in parallel
+    let promisesRes = await Promise.all([
+      this.ethereumMgr.updateAccount(from,blockchain,ret.txHash),
+      this.storeIdentityCreation(
+        deviceKey,
+        ret.txHash,
+        blockchain,
+        managerType,
+        ret.managerAddress,
+        txOptions
+      )
+    ]);
     return ret;
   }
 

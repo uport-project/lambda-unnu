@@ -79,7 +79,6 @@ class CreateIdentityHandler {
         return;
       }
 
-      /*
       if(idCreationObj){
         const mess="deviceKey already used. On tx: "+idCreationObj.tx_hash
         console.log(mess)
@@ -91,7 +90,6 @@ class CreateIdentityHandler {
         cb(null, resp)
         return;
       }
-      */
 
       //Create Identity
       try{
