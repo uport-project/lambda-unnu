@@ -90,7 +90,7 @@ class IdentityManagerMgr {
     let from = await this.ethereumMgr.getAvailableAddress(blockchain,minBalance);
     
     if(from == null){
-      throw "no available addreess";
+      throw new Error("no available addresses");
       //TODO: queue the transaction until an available address.
     }
 

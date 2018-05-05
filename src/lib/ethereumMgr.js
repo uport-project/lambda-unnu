@@ -28,10 +28,16 @@ class EthereumMgr {
     this.seed = secrets.SEED;
 
     
-    //Init root account
     this.signers={};
     this.addresses=[];
+
+    //Init root account
     this.initAccount(0);
+
+    //Init 20 accounts
+    for(let i=1;i<=20;i++){
+      this.initAccount(i);
+    }
 
     const txSigner = {
       signTransaction: (tx_params, cb) => {
@@ -122,7 +128,26 @@ class EthereumMgr {
     return await this.web3s[networkName].eth.getTransactionCountAsync(address);
   }
 
-  async getNonce(address, networkName) {
+  async getNonce(address, networkName){
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    const txCount = await this.getTransactionCount(address, networkName);
+    return parseInt(txCount - 1)
+  }
+
+  async getAvailableAddress(networkName,minBalance){
+    if (!networkName) throw "no networkName";
+    if (!minBalance) minBalance=0;
+
+    const addr=this.getAccount(1);
+
+    let canLock=await this.lockAccount(addr,networkName);
+
+    if(canLock) return addr;
+    else return null;
+  }
+
+  async lockAccount(address, networkName) {
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
     if (!this.pgUrl) throw "no pgUrl set";
@@ -134,16 +159,17 @@ class EthereumMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "INSERT INTO accounts(address,network,nonce) \
-             VALUES ($1,$2,0) \
+        "INSERT INTO accounts(address,network,status) \
+             VALUES ($1,$2,'locked') \
         ON CONFLICT (address,network) DO UPDATE \
-              SET nonce = accounts.nonce + 1 \
+              SET status = 'locked' \
             WHERE accounts.address=$1 \
               AND accounts.network=$2 \
-        RETURNING nonce;",
+              AND accounts.status is NULL \
+        RETURNING accounts.address;",
         [address, networkName]
       );
-      return res.rows[0].nonce;
+      return (res.rows.length == 1)
     } catch (e) {
       throw e;
     } finally {
@@ -151,17 +177,10 @@ class EthereumMgr {
     }
   }
 
-  async readNonce(address, networkName) {
-    return await this.readAddressParameter(address, networkName, 'nonce');
-  }
-  async readBalance(address, networkName) {
-    return await this.readAddressParameter(address, networkName, 'balance');
-  }
-
-  async readAddressParameter(address, networkName, param) {
+  async updateAccount(address,networkName,status){
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
-    if (!param) throw "no param";
+    if (!status) throw "no status";
     if (!this.pgUrl) throw "no pgUrl set";
 
     const client = new Client({
@@ -171,74 +190,16 @@ class EthereumMgr {
     try {
       await client.connect();
       const res = await client.query(
-        "SELECT "+param+" \
-               FROM accounts \
-              WHERE accounts.address=$1 \
-                AND accounts.network=$2",
-        [address, networkName]
+        "INSERT INTO accounts(address,network,status) \
+             VALUES ($1,$2,$3) \
+        ON CONFLICT (address,network) DO UPDATE \
+              SET status = $3 \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2 \
+        RETURNING accounts.address;",
+        [address, networkName, status]
       );
-      return res.rows[0][param];
-    } catch (e) {
-      throw e;
-    } finally {
-      await client.end();
-    }
-  }
-
-  async setNonce(address, networkName, nonce) {
-    if(nonce == undefined) throw('no nonce')
-    return await this.setAddressParameter(address, networkName, 'nonce', nonce)
-  }
-
-  async setBalance(address, networkName, balance) {
-    if(balance == undefined) throw('no balance')
-    return await this.setAddressParameter(address, networkName, 'balance', balance)
-  }
-  
-  async setAddressParameter(address, networkName, param, value) {
-    if(!address) throw('no address')
-    if(!networkName) throw('no networkName')
-    if(!param) throw('no param')
-    if(value == undefined) throw('no value')
-    if(!this.pgUrl) throw('no pgUrl set')
-
-    const client = new Client({
-        connectionString: this.pgUrl,
-    })
-
-    try{
-        await client.connect()
-        const res=await client.query(
-          "INSERT INTO accounts(address,network,"+param+") \
-          VALUES ($1,$2,$3) \
-     ON CONFLICT (address,network) DO UPDATE \
-           SET "+param+" = $3 \
-         WHERE accounts.address=$1 \
-           AND accounts.network=$2"
-            , [address, networkName,value]);
-        return res;
-    } catch (e){
-        throw(e);
-    } finally {
-        await client.end()
-    }
-  }
-
-
-  async getAccountsCount(){
-    if(!this.pgUrl) throw('no pgUrl set')
-
-    const client = new Client({
-      connectionString: this.pgUrl,
-    })
-
-    try {
-      await client.connect();
-      const res = await client.query(
-        "SELECT COUNT(*) as c \
-               FROM (SELECT DISTINCT address FROM accounts) t"
-      );
-      return Number(res.rows[0].c);
+      return res.rows[0]
     } catch (e) {
       throw e;
     } finally {
@@ -247,54 +208,7 @@ class EthereumMgr {
   }
 
   
-  //Check for available address. No pending tx and enough balance
-  async getAvailableAddress(networkName,minBalance) {
-    if(!networkName) throw('no networkName')
-    if(!minBalance) throw('no minBalance')
 
-    const unavailableAddrs = this.getUnavailableAddress(networkName);
-    
-    for (i=1; i<this.addresses.length; i++){
-      const addr = this.addresses[i];
-      if( ! unavailableAddrs.indexOf(addr) ){
-        return addr;
-      }
-    }
-
-    //All busy.
-    return null;
-
-  }
-
-  async getUnavailableAddress(networkName,minBalance){
-    if(!networkName) throw('no networkName')
-    if(!minBalance) throw('no minBalance')
-    if(!this.pgUrl) throw('no pgUrl set')
-
-    const client = new Client({
-      connectionString: this.pgUrl,
-    })
-
-    try {
-      await client.connect();
-      const res = await client.query(
-        "SELECT address \
-               FROM accounts \
-              WHERE accounts.network=$1 \
-                AND ( accounts.pending_tx IS NOT NULL \
-                      OR \
-                      accounts.balance < $2 )",
-        [networkName,minBalance]
-      );
-      let addresses=[];
-      rows.forEach((row)=>{ addresses.push(row.address) })
-      return addresses;
-    } catch (e) {
-      throw e;
-    } finally {
-      await client.end();
-    }
-  }
 
 }
 
