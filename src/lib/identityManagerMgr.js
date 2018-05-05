@@ -98,7 +98,7 @@ class IdentityManagerMgr {
       from: from,
       gas: gas,
       gasPrice: gasPrice,
-      nonce: await this.ethereumMgr.getNonce(from, blockchain)
+      nonce: await this.ethereumMgr.getTransactionCount(from, blockchain)
     };
 
     console.log("Tx Options");

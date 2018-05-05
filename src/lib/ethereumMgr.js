@@ -26,17 +26,20 @@ class EthereumMgr {
   setSecrets(secrets) {
     this.pgUrl = secrets.PG_URL;
     this.seed = secrets.SEED;
-
     
     this.signers={};
     this.addresses=[];
 
-    //Init root account
-    this.initAccount(0);
 
-    //Init 20 accounts
-    for(let i=1;i<=20;i++){
-      this.initAccount(i);
+     //Init root+20 accounts
+     const maxAccounts=20;
+     const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
+
+     for(let i=0;i<=maxAccounts;i++){
+      const signer = new HDSigner(hdPrivKey,i);
+      const addr = signer.getAddress();
+      this.signers[addr]=signer;
+      this.addresses[i]=addr;
     }
 
     const txSigner = {
@@ -59,15 +62,6 @@ class EthereumMgr {
 
       this.gasPrices[network] = DEFAULT_GAS_PRICE;
     }
-  }
-
-  initAccount(index){
-    const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
-    const signer = new HDSigner(hdPrivKey,index);
-    const addr = signer.getAddress();
-    this.signers[addr]=signer;
-    this.addresses[index]=addr;
-    return addr;
   }
 
   getProvider(networkName) {
@@ -102,7 +96,7 @@ class EthereumMgr {
   }
 
   async getGasPrice(networkName) {
-    if (!networkName) throw "no networkName";
+    if (!networkName) throw Error("no networkName");
     try {
       const networkGasPrice = (await this.web3s[networkName].eth.getGasPriceAsync()).toNumber();
       if(networkGasPrice > DEFAULT_GAS_PRICE)
@@ -121,12 +115,6 @@ class EthereumMgr {
     if (!networkName) throw "no networkName";
     if (!this.web3s[networkName]) throw "no web3 for networkName";
     return await this.web3s[networkName].eth.getTransactionCountAsync(address);
-  }
-
-  async getNonce(address, networkName){
-    if (!address) throw "no address";
-    if (!networkName) throw "no networkName";
-    return await this.getTransactionCount(address, networkName);
   }
 
   async getAvailableAddress(networkName,minBalance){
