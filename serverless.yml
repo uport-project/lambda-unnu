@@ -55,6 +55,7 @@ functions:
   checkAccounts:
     handler: src/api_handler.checkAccounts
     description: uPort check accounts
+    timeout: 30
     events:
      - http:
          path: checkAccounts
@@ -66,3 +67,10 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: true
+  checkPendings:
+    handler: src/jobs_handler.checkPendings
+    events:
+     - schedule:
+         rate: rate(5 minutes)
+         enabled: true
+  
