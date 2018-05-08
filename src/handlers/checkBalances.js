@@ -18,7 +18,7 @@ class CheckBalancesHandler {
         let stage=sp[0]
         console.log('stage:' +stage)
 
-        let addr=this.ethereumMgr.getAccount(0); //Root account only
+        let addr=this.ethereumMgr.addresses[0]; //Root account only
         console.log('checking root addr:'+addr)
 
         for (const network in networks) {
