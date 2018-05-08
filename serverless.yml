@@ -66,13 +66,3 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: true
-  checkNonces:
-    handler: src/jobs_handler.checkNonces
-    description: uPort check for blockchain nonces against database stored nonce
-    events: 
-      - schedule:
-          rate: rate(10 minutes)
-          enabled: true
-  fixNonces:
-    handler: src/script_handler.fixNonces
-    description: uPort fix for blockchain nonces against database stored nonce
