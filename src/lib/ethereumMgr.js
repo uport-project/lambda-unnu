@@ -117,6 +117,13 @@ class EthereumMgr {
     return await this.web3s[networkName].eth.getTransactionCountAsync(address);
   }
 
+  async sendTransaction(txObject, networkName) {
+    if (!txObject) throw "no txObject";
+    if (!networkName) throw "no networkName";
+    if (!this.web3s[networkName]) throw "no web3 for networkName";
+    return await this.web3s[networkName].eth.sendTransactionAsync(txObject);
+  }
+
   async getAvailableAddress(networkName,minBalance){
     if (!networkName) throw "no networkName";
     if (!minBalance) minBalance=0;
@@ -208,6 +215,31 @@ class EthereumMgr {
     }
   }
 
+  async getStatus(address,networkName){
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    if (!this.pgUrl) throw "no pgUrl set";
+
+    const client = new Client({
+      connectionString: this.pgUrl
+    });
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "SELECT status \
+             FROM accounts \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2;",
+        [address, networkName]
+      );
+      return res.rows.length==0 ? null : res.rows[0].status
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
   
 
 

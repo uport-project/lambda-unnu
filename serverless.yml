@@ -14,7 +14,6 @@ provider:
       Action:
       - s3:*
       Resource: 'arn:aws:s3:::*'
-      
   environment:
       SECRETS: ${self:custom.kmsSecrets.secrets.SECRETS}
 
@@ -34,6 +33,7 @@ functions:
   createIdentity:
     handler: src/api_handler.createIdentity
     description: uPort Create Identity with "identityManager.createIdentity()"
+    timeout: 30
     events:
      - http:
          path: createIdentity
@@ -47,10 +47,17 @@ functions:
          method: post
   checkPending:
     handler: src/api_handler.checkPending
-    description: uPort check if pending tx are mined"
+    description: uPort check if pending tx are mined
     events:
      - http:
          path: checkPending
+         method: post
+  checkAccounts:
+    handler: src/api_handler.checkAccounts
+    description: uPort check accounts
+    events:
+     - http:
+         path: checkAccounts
          method: post
   checkBalances:
     handler: src/jobs_handler.checkBalances
@@ -62,13 +69,10 @@ functions:
   checkNonces:
     handler: src/jobs_handler.checkNonces
     description: uPort check for blockchain nonces against database stored nonce
-    events:
+    events: 
       - schedule:
           rate: rate(10 minutes)
           enabled: true
   fixNonces:
     handler: src/script_handler.fixNonces
     description: uPort fix for blockchain nonces against database stored nonce
-  createWorker:
-    handler: src/script_handler.createWorker
-    description: uPort create Worker
