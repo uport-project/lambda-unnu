@@ -47,10 +47,18 @@ functions:
          method: post
   checkPending:
     handler: src/api_handler.checkPending
-    description: uPort check if pending tx are mined"
+    description: uPort check if pending tx are mined
     events:
      - http:
          path: checkPending
+         method: post
+  checkAccounts:
+    handler: src/api_handler.checkAccounts
+    description: uPort check accounts
+    timeout: 30
+    events:
+     - http:
+         path: checkAccounts
          method: post
   checkBalances:
     handler: src/jobs_handler.checkBalances
@@ -59,13 +67,10 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: true
-  checkNonces:
-    handler: src/jobs_handler.checkNonces
-    description: uPort check for blockchain nonces against database stored nonce
+  checkPendings:
+    handler: src/jobs_handler.checkPendings
     events:
-      - schedule:
-          rate: rate(10 minutes)
-          enabled: true
-  fixNonces:
-    handler: src/script_handler.fixNonces
-    description: uPort fix for blockchain nonces against database stored nonce
+     - schedule:
+         rate: rate(5 minutes)
+         enabled: true
+  

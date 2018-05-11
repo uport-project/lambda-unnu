@@ -26,26 +26,39 @@ class EthereumMgr {
   setSecrets(secrets) {
     this.pgUrl = secrets.PG_URL;
     this.seed = secrets.SEED;
+    
+    this.signers={};
+    this.addresses=[];
 
-    const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
-    this.signer = new HDSigner(hdPrivKey);
+
+     //Init root+20 accounts
+     const maxAccounts=20;
+     const hdPrivKey = generators.Phrase.toHDPrivateKey(this.seed);
+
+     for(let i=0;i<=maxAccounts;i++){
+      const signer = new HDSigner(hdPrivKey,i);
+      const addr = signer.getAddress();
+      this.signers[addr]=signer;
+      this.addresses[i]=addr;
+    }
 
     const txSigner = {
       signTransaction: (tx_params, cb) => {
         let tx = new Transaction(tx_params);
         let rawTx = tx.serialize().toString("hex");
-        this.signer.signRawTx(rawTx, (err, signedRawTx) => {
+        this.signers[tx_params.from].signRawTx(rawTx, (err, signedRawTx) => {
           cb(err, "0x" + signedRawTx);
         });
       },
-      accounts: cb => cb(null, [this.signer.getAddress()])
+      accounts: cb => cb(null, this.addresses)
     };
 
+    //Web3s for all networks
     for (const network in networks) {
       let provider = new SignerProvider(networks[network].rpcUrl, txSigner);
       let web3 = new Web3(provider);
       web3.eth = Promise.promisifyAll(web3.eth);
-      this.web3s[network] = web3;
+      this.web3s[network]=web3
 
       this.gasPrices[network] = DEFAULT_GAS_PRICE;
     }
@@ -54,10 +67,6 @@ class EthereumMgr {
   getProvider(networkName) {
     if (!this.web3s[networkName]) return null;
     return this.web3s[networkName].currentProvider;
-  }
-
-  getAddress() {
-    return this.signer.getAddress();
   }
 
   getNetworkId(networkName) {
@@ -87,7 +96,7 @@ class EthereumMgr {
   }
 
   async getGasPrice(networkName) {
-    if (!networkName) throw "no networkName";
+    if (!networkName) throw Error("no networkName");
     try {
       const networkGasPrice = (await this.web3s[networkName].eth.getGasPriceAsync()).toNumber();
       if(networkGasPrice > DEFAULT_GAS_PRICE)
@@ -101,92 +110,139 @@ class EthereumMgr {
     return this.gasPrices[networkName];
   }
 
-  async getNonce(address, networkName) {
-    if (!address) throw "no address";
-    if (!networkName) throw "no networkName";
-    if (!this.pgUrl) throw "no pgUrl set";
-
-    const client = new Client({
-      connectionString: this.pgUrl
-    });
-
-    try {
-      await client.connect();
-      const res = await client.query(
-        "INSERT INTO nonces(address,network,nonce) \
-             VALUES ($1,$2,0) \
-        ON CONFLICT (address,network) DO UPDATE \
-              SET nonce = nonces.nonce + 1 \
-            WHERE nonces.address=$1 \
-              AND nonces.network=$2 \
-        RETURNING nonce;",
-        [address, networkName]
-      );
-      return res.rows[0].nonce;
-    } catch (e) {
-      throw e;
-    } finally {
-      await client.end();
-    }
-  }
-
-  async readNonce(address, networkName) {
-    if (!address) throw "no address";
-    if (!networkName) throw "no networkName";
-    if (!this.pgUrl) throw "no pgUrl set";
-
-    const client = new Client({
-      connectionString: this.pgUrl
-    });
-
-    try {
-      await client.connect();
-      const res = await client.query(
-        "SELECT nonce \
-               FROM nonces \
-              WHERE nonces.address=$1 \
-                AND nonces.network=$2",
-        [address, networkName]
-      );
-      return res.rows[0].nonce;
-    } catch (e) {
-      throw e;
-    } finally {
-      await client.end();
-    }
-  }
-
-  async setNonce(address, networkName, nonce) {
-    if(!address) throw('no address')
-    if(!networkName) throw('no networkName')
-    if(!this.pgUrl) throw('no pgUrl set')
-
-    const client = new Client({
-        connectionString: this.pgUrl,
-    })
-
-    try{
-        await client.connect()
-        const res=await client.query(
-            "UPDATE nonces \
-                SET nonce=$3 \
-              WHERE nonces.address=$1 \
-                AND nonces.network=$2"
-            , [address, networkName,nonce]);
-        return res;
-    } catch (e){
-        throw(e);
-    } finally {
-        await client.end()
-    }
-  }
-
   async getTransactionCount(address, networkName) {
     if (!address) throw "no address";
     if (!networkName) throw "no networkName";
     if (!this.web3s[networkName]) throw "no web3 for networkName";
     return await this.web3s[networkName].eth.getTransactionCountAsync(address);
   }
+
+  async sendTransaction(txObject, networkName) {
+    if (!txObject) throw "no txObject";
+    if (!networkName) throw "no networkName";
+    if (!this.web3s[networkName]) throw "no web3 for networkName";
+    return await this.web3s[networkName].eth.sendTransactionAsync(txObject);
+  }
+
+  async getAvailableAddress(networkName,minBalance){
+    if (!networkName) throw "no networkName";
+    if (!minBalance) minBalance=0;
+    
+    console.log("getAvailableAddress: minBalance: "+minBalance)
+      
+    for(let i=1;i<this.addresses.length;i++){
+      const addr=this.addresses[i];
+      console.log("getAvailableAddress: checking addr "+addr)
+
+      //Call lockAccount and getBalance in parallel. Wait for both to complete
+      let promisesRes = await Promise.all([
+        this.lockAccount(addr,networkName),
+        this.getBalance(addr,networkName)
+      ]);
+
+      let canLock=promisesRes[0];
+      if(canLock){
+        console.log("getAvailableAddress:    addr "+addr+" LOCKED !")
+        const bal=promisesRes[1]; 
+        console.log("getAvailableAddress:     bal "+addr+": "+bal)
+        if(bal>=minBalance){
+          return addr;
+        }else{
+          console.log("getAvailableAddress:    addr "+addr+" unlocking (not enough balance)")
+          await this.updateAccount(addr,networkName,null)
+        }
+      }
+    }
+    //No address available :(
+    return null;
+
+  }
+
+  async lockAccount(address, networkName) {
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    if (!this.pgUrl) throw "no pgUrl set";
+
+    const client = new Client({
+      connectionString: this.pgUrl
+    });
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "INSERT INTO accounts(address,network,status) \
+             VALUES ($1,$2,'locked') \
+        ON CONFLICT (address,network) DO UPDATE \
+              SET status = 'locked' \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2 \
+              AND accounts.status is NULL \
+        RETURNING accounts.address;",
+        [address, networkName]
+      );
+      return (res.rows.length == 1)
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
+
+  async updateAccount(address,networkName,status){
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    if (!this.pgUrl) throw "no pgUrl set";
+
+    const client = new Client({
+      connectionString: this.pgUrl
+    });
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "UPDATE accounts\
+              SET status = $3 \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2 \
+        RETURNING accounts.address;",
+        [address, networkName, status]
+      );
+      return res.rows[0]
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
+
+  async getStatus(address,networkName){
+    if (!address) throw "no address";
+    if (!networkName) throw "no networkName";
+    if (!this.pgUrl) throw "no pgUrl set";
+
+    const client = new Client({
+      connectionString: this.pgUrl
+    });
+
+    try {
+      await client.connect();
+      const res = await client.query(
+        "SELECT status \
+             FROM accounts \
+            WHERE accounts.address=$1 \
+              AND accounts.network=$2;",
+        [address, networkName]
+      );
+      return res.rows.length==0 ? null : res.rows[0].status
+    } catch (e) {
+      throw e;
+    } finally {
+      await client.end();
+    }
+  }
+  
+
+
 }
 
 module.exports = EthereumMgr;

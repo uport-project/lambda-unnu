@@ -82,16 +82,27 @@ class IdentityManagerMgr {
     }
 
     await this.initIdentityManager(managerType, blockchain);
-    let from = this.ethereumMgr.getAddress(); //TODO: read from provider
+
+    //Get an available address/worker
+    const gasPrice =  await this.ethereumMgr.getGasPrice(blockchain);
+    const gas = 400000;
+    const minBalance= gas * gasPrice * 1.1;
+    let from = await this.ethereumMgr.getAvailableAddress(blockchain,minBalance);
+    
+    if(from == null){
+      throw new Error("no available addresses");
+      //TODO: queue the transaction until an available address.
+    }
+
     let txOptions = {
       from: from,
-      gas: 400000,
-      gasPrice: await this.ethereumMgr.getGasPrice(blockchain),
-      nonce: await this.ethereumMgr.getNonce(from, blockchain)
+      gas: gas,
+      gasPrice: gasPrice,
+      nonce: await this.ethereumMgr.getTransactionCount(from, blockchain)
     };
 
-    console.log("Gas Price used");
-    console.log(txOptions.gasPrice);
+    console.log("Tx Options");
+    console.log(txOptions);
     //Return object
     let ret = {
       managerAddress: idMgrs[blockchain].address
@@ -113,14 +124,18 @@ class IdentityManagerMgr {
       );
     }
 
-    await this.storeIdentityCreation(
-      deviceKey,
-      ret.txHash,
-      blockchain,
-      managerType,
-      ret.managerAddress,
-      txOptions
-    );
+    //Call updateAccount and storeIdentityCreation in parallel
+    let promisesRes = await Promise.all([
+      this.ethereumMgr.updateAccount(from,blockchain,ret.txHash),
+      this.storeIdentityCreation(
+        deviceKey,
+        ret.txHash,
+        blockchain,
+        managerType,
+        ret.managerAddress,
+        txOptions
+      )
+    ]);
     return ret;
   }
 

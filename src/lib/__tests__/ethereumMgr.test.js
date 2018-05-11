@@ -35,9 +35,9 @@ describe("EthereumMgr", () => {
     expect(secretSet).toEqual(false);
   });
 
-  test("getNonce() no pgUrl set", done => {
+  test("lockAccount() no pgUrl set", done => {
     sut
-      .getNonce("a", "n")
+      .lockAccount("a", "n")
       .then(resp => {
         fail("shouldn't return");
         done();
@@ -48,9 +48,9 @@ describe("EthereumMgr", () => {
       });
   });
 
-  test("readNonce() no pgUrl set", done => {
+  test("updateAccount() no pgUrl set", done => {
     sut
-      .readNonce("a", "n")
+      .updateAccount("a", "n", null)
       .then(resp => {
         fail("shouldn't return");
         done();
@@ -60,6 +60,21 @@ describe("EthereumMgr", () => {
         done();
       });
   });
+
+  test("getStatus() no pgUrl set", done => {
+    sut
+      .getStatus("a", "n")
+      .then(resp => {
+        fail("shouldn't return");
+        done();
+      })
+      .catch(err => {
+        expect(err).toEqual("no pgUrl set");
+        done();
+      });
+  });
+
+
 
   test("setSecrets", () => {
     expect(sut.isSecretsSet()).toEqual(false);
@@ -67,7 +82,9 @@ describe("EthereumMgr", () => {
     expect(sut.isSecretsSet()).toEqual(true);
     expect(sut.pgUrl).not.toBeUndefined();
     expect(sut.seed).not.toBeUndefined();
-    expect(sut.signer).not.toBeUndefined();
+    expect(sut.signers).not.toBeUndefined();
+    expect(sut.addresses).not.toBeUndefined();
+    expect(sut.addresses.length).toEqual(21);
   });
 
   test("getProvider() no networkName", done => {
@@ -156,7 +173,7 @@ describe("EthereumMgr", () => {
           done();
         })
         .catch(err => {
-          expect(err).toEqual("no networkName");
+          expect(err.message).toEqual("no networkName");
           done();
         });
     });
@@ -182,146 +199,6 @@ describe("EthereumMgr", () => {
     });
   });
 
-  describe("getNonce()", () => {
-    test("no address", done => {
-      sut
-        .getNonce(null, "network")
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("no address");
-          done();
-        });
-    });
+  
 
-    test("no networkName", done => {
-      sut
-        .getNonce("address", null)
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("no networkName");
-          done();
-        });
-    });
-
-    test("throw exception", done => {
-      pgClientMock.connect.mockImplementation(() => {
-        throw "throwed error";
-      });
-      sut
-        .getNonce("address", "network")
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("throwed error");
-          done();
-        });
-    });
-
-    test("happy path", done => {
-      pgClientMock.connect = jest.fn();
-      pgClientMock.connect.mockClear();
-      pgClientMock.end.mockClear();
-      pgClientMock.query = jest.fn(() => {
-        return Promise.resolve({
-          rows: [
-            {
-              nonce: 10
-            }
-          ]
-        });
-      });
-      sut.getNonce("address", "network").then(resp => {
-        expect(pgClientMock.connect).toBeCalled();
-        expect(pgClientMock.query).toBeCalled();
-        expect(pgClientMock.query).toBeCalledWith(
-          "INSERT INTO nonces(address,network,nonce) \
-             VALUES ($1,$2,0) \
-        ON CONFLICT (address,network) DO UPDATE \
-              SET nonce = nonces.nonce + 1 \
-            WHERE nonces.address=$1 \
-              AND nonces.network=$2 \
-        RETURNING nonce;",
-          ["address", "network"]
-        );
-        expect(pgClientMock.end).toBeCalled();
-        expect(resp).toEqual(10);
-        done();
-      });
-    });
-  });
-
-  describe("readNonce()", () => {
-    test("no address", done => {
-      sut
-        .readNonce(null, "network")
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("no address");
-          done();
-        });
-    });
-
-    test("no networkName", done => {
-      sut
-        .readNonce("address", null)
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("no networkName");
-          done();
-        });
-    });
-
-    test("throw exception", done => {
-      pgClientMock.connect.mockImplementation(() => {
-        throw "throwed error";
-      });
-      sut
-        .readNonce("address", "network")
-        .then(resp => {
-          fail("shouldn't return");
-          done();
-        })
-        .catch(err => {
-          expect(err).toEqual("throwed error");
-          done();
-        });
-    });
-
-    test("happy path", done => {
-      pgClientMock.connect = jest.fn();
-      pgClientMock.connect.mockClear();
-      pgClientMock.end.mockClear();
-      pgClientMock.query = jest.fn(() => {
-        return Promise.resolve({ rows: [{ nonce: 10 }] });
-      });
-      sut.readNonce("address", "network").then(resp => {
-        expect(pgClientMock.connect).toBeCalled();
-        expect(pgClientMock.query).toBeCalled();
-        expect(pgClientMock.query).toBeCalledWith(
-          "SELECT nonce \
-               FROM nonces \
-              WHERE nonces.address=$1 \
-                AND nonces.network=$2",
-          ["address", "network"]
-        );
-        expect(pgClientMock.end).toBeCalled();
-        expect(resp).toEqual(10);
-        done();
-      });
-    });
-  });
 });
