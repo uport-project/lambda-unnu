@@ -32,61 +32,73 @@ class CheckAccountsHandler {
       const topUpTo   = 100000000000000000 //0.10 ETH 
       const threshold =  20000000000000000 //0.02 ETH 
 
+      let promises=[];
+      
       for(let i=1;i<this.ethereumMgr.addresses.length;i++){
         const addr=this.ethereumMgr.addresses[i];
         console.log("checking addr: "+addr)
 
         //Checking status
-        const status = await this.ethereumMgr.getStatus(addr,body.blockchain);
-        console.log("      status:"+status);
-        if(status!=null && status.startsWith('0x')){
+        promises.push( new Promise( async (done) => {
+          const status = await this.ethereumMgr.getStatus(addr,body.blockchain);
+          console.log("["+addr+"] status:"+status);
+          if(status!=null && status.startsWith('0x')){
 
-          //Check if mined;
-          const txReceipt=await this.ethereumMgr.getTransactionReceipt(status,body.blockchain);
-          //console.log(txReceipt);
-          if(txReceipt!=null){
-            console.log(txReceipt);
-            console.log("      ...releasing account")
-            await this.ethereumMgr.updateAccount(addr,body.blockchain,null);
+            //Check if mined;
+            const txReceipt=await this.ethereumMgr.getTransactionReceipt(status,body.blockchain);
+            //console.log(txReceipt);
+            if(txReceipt!=null){
+              console.log(txReceipt);
+              console.log("["+addr+"]    ...releasing account")
+              await this.ethereumMgr.updateAccount(addr,body.blockchain,null);
+              console.log("["+addr+"]    ...released!")
+            }
           }
-      
-        }
+          done();
+        }));
+        
+        
 
         //Check balance
-        const balance = await this.ethereumMgr.getBalance(addr,body.blockchain);
-        console.log("      balance:"+balance);
-        if(balance < threshold){ 
-          console.log("      not enough balance! < "+threshold);
-          let amountToFund = topUpTo - balance;
-          console.log("      amountToFund: "+amountToFund);
-          
-          //Sending tx
-          let fundingTx = {
-            from: rootAddr,
-            to: addr,
-            value: amountToFund,
-            gas: 21000,
-            gasPrice: gasPrice,
-            nonce: rootAddrNonce
-          };
-          rootAddrNonce++;
-          console.log(fundingTx);
-          
-          let txHash;
-          try {
-            txHash = await this.ethereumMgr.sendTransaction(fundingTx,body.blockchain);
-            console.log("   txHash: "+txHash)
-          } catch (err) {
-            console.log("Error on this.ethereumMgr.sendTransaction");
-            console.log(err);
-            cb({ code: 500, message: err.message });
-            return;
+        promises.push( new Promise( async (done) => {
+          const balance = await this.ethereumMgr.getBalance(addr,body.blockchain);
+          console.log("["+addr+"] balance:"+balance);
+          if(balance < threshold){ 
+            console.log("["+addr+"]       not enough balance! < "+threshold);
+            let amountToFund = topUpTo - balance;
+            console.log("["+addr+"]       amountToFund: "+amountToFund);
+            
+            //Sending tx
+            let fundingTx = {
+              from: rootAddr,
+              to: addr,
+              value: amountToFund,
+              gas: 21000,
+              gasPrice: gasPrice,
+              nonce: rootAddrNonce
+            };
+            rootAddrNonce++;
+            console.log(fundingTx);
+            
+            let txHash = await this.ethereumMgr.sendTransaction(fundingTx,body.blockchain);
+            console.log("["+addr+"]    txHash: "+txHash)
+            
           }
-        }        
+          done();
+        }));
 
       }
-      cb(null, 'OK')
-      return;
+
+      Promise.all(promises)
+      .catch( (err)=>{
+        console.log(err)
+        cb({ code: 500, message: err.message });
+      })
+      .then( (promiseRes) => {
+        //console.log(promisesRes);
+        cb(null, 'OK')
+        return;
+      })
   }
 }
 module.exports = CheckAccountsHandler;
