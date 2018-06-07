@@ -9,11 +9,11 @@ class CreateIdentityHandler {
     async handle(event, context, cb) {
       let authToken;
       try{
-        authToken = await this.authMgr.verifyNisaba(event)
+        authToken = await this.authMgr.verifyFuelToken(event)
       } catch(err) {
-        console.log("Error on this.authMgr.verifyNisaba")
+        console.log("Error on this.authMgr.verifyFuelToken")
         console.log(err)
-        cb({ code: 401, message: err })
+        cb({ code: 401, message: err.message })
         return;
       }
   

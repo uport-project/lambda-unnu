@@ -39,10 +39,12 @@
   },
   "dependencies": {
     "bluebird": "^3.5.1",
+    "did-jwt": "^0.0.8",
     "eth-signer": "^0.3.4",
     "ethjs-abi": "^0.2.1",
     "ethjs-provider-signer": "^0.1.4",
     "ethjs-unit": "^0.1.6",
+    "ethr-did-resolver": "^0.0.8",
     "jsontokens": "^0.7.6",
     "pg": "^7.4.0",
     "serverless-kms-secrets": "^1.0.2",

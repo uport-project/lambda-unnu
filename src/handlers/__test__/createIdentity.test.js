@@ -5,7 +5,7 @@ describe('CreateIdentityHandler', () => {
     let sut;
     let deviceKey='0xdeviceKey'
     let recoveryKey='0xrecoveryKey'
-    let authMgrMock={ verifyNisaba: jest.fn()};
+    let authMgrMock={ verifyFuelToken: jest.fn()};
     let identityManagerMgrMock={ 
         getIdentityCreation: jest.fn(),
         createIdentity: jest.fn()
@@ -19,9 +19,9 @@ describe('CreateIdentityHandler', () => {
         expect(sut).not.toBeUndefined();
     });
 
-    test('handle failed authMgr.verifyNisaba', done => {
-        authMgrMock.verifyNisaba.mockImplementation(()=>{
-            throw("throwed error")
+    test('handle failed authMgr.verifyFuelToken', done => {
+        authMgrMock.verifyFuelToken.mockImplementation(()=>{
+            throw Error("throwed error")
         });
         sut.handle(null,{},(err,res)=>{
             expect(err).not.toBeNull()
@@ -32,7 +32,7 @@ describe('CreateIdentityHandler', () => {
     });
 
     test('handle null body', done => {
-        authMgrMock.verifyNisaba.mockImplementation(()=>{
+        authMgrMock.verifyFuelToken.mockImplementation(()=>{
             return {sub: '0xfuelTokenAddress'}
         });
         sut.handle(undefined,null,(err,res)=>{
@@ -137,7 +137,7 @@ describe('CreateIdentityHandler', () => {
     })
 
     test('handle token mismatch', done => {
-        authMgrMock.verifyNisaba.mockImplementation(()=>{ return {sub: '0xnotDeviceKey'} });
+        authMgrMock.verifyFuelToken.mockImplementation(()=>{ return {sub: '0xnotDeviceKey'} });
         let event={
             deviceKey: deviceKey,
             recoveryKey: recoveryKey,
@@ -153,7 +153,7 @@ describe('CreateIdentityHandler', () => {
     })
 
     test('handle identityManagerMgr.getIdentityCreation() error', done => {
-        authMgrMock.verifyNisaba.mockImplementation(()=>{ return {sub: deviceKey} })
+        authMgrMock.verifyFuelToken.mockImplementation(()=>{ return {sub: deviceKey} })
         identityManagerMgrMock.getIdentityCreation.mockImplementation(()=>{ throw("error")})
         let event={
             deviceKey: deviceKey,
@@ -178,7 +178,7 @@ describe('CreateIdentityHandler', () => {
                 manager_type: 'IdentityManager', 
                 tx_hash: '0xtxHash'} 
             })
-        authMgrMock.verifyNisaba.mockImplementation(()=>{ return {sub: deviceKey} })
+        authMgrMock.verifyFuelToken.mockImplementation(()=>{ return {sub: deviceKey} })
         let event={
             hello: 'hello',
             deviceKey: deviceKey,
